@@ -213,7 +213,7 @@ const ViewCrawl: React.FC = () => {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
-  const [travelMode, setTravelMode] = useState<google.maps.TravelMode>(google.maps.TravelMode.WALKING);
+  const [travelMode, setTravelMode] = useState<string>('WALKING');
   
   // Initialize Google Maps
   const { isLoaded, loadError } = useJsApiLoader({
@@ -327,12 +327,18 @@ const ViewCrawl: React.FC = () => {
       crawlData.venues[crawlData.venues.length - 1].coordinates.longitude
     );
     
+    // Convert string travel mode to Google Maps TravelMode
+    const googleTravelMode = 
+      travelMode === 'WALKING' ? google.maps.TravelMode.WALKING :
+      travelMode === 'DRIVING' ? google.maps.TravelMode.DRIVING :
+      google.maps.TravelMode.TRANSIT;
+    
     directionsService.route(
       {
         origin,
         destination,
         waypoints,
-        travelMode,
+        travelMode: googleTravelMode,
         optimizeWaypoints: true
       },
       (result, status) => {
@@ -376,7 +382,7 @@ const ViewCrawl: React.FC = () => {
     navigate('/plan');
   };
   
-  const handleTravelModeChange = (mode: google.maps.TravelMode) => {
+  const handleTravelModeChange = (mode: string) => {
     setTravelMode(mode);
   };
   
@@ -429,20 +435,20 @@ const ViewCrawl: React.FC = () => {
             
             <TravelMode>
               <ModeButton 
-                $active={travelMode === google.maps.TravelMode.WALKING}
-                onClick={() => handleTravelModeChange(google.maps.TravelMode.WALKING)}
+                $active={travelMode === 'WALKING'}
+                onClick={() => handleTravelModeChange('WALKING')}
               >
                 🚶‍♂️ Walking
               </ModeButton>
               <ModeButton 
-                $active={travelMode === google.maps.TravelMode.DRIVING}
-                onClick={() => handleTravelModeChange(google.maps.TravelMode.DRIVING)}
+                $active={travelMode === 'DRIVING'}
+                onClick={() => handleTravelModeChange('DRIVING')}
               >
                 🚗 Driving
               </ModeButton>
               <ModeButton 
-                $active={travelMode === google.maps.TravelMode.TRANSIT}
-                onClick={() => handleTravelModeChange(google.maps.TravelMode.TRANSIT)}
+                $active={travelMode === 'TRANSIT'}
+                onClick={() => handleTravelModeChange('TRANSIT')}
               >
                 🚆 Transit
               </ModeButton>
@@ -453,7 +459,7 @@ const ViewCrawl: React.FC = () => {
                 <React.Fragment key={venue.id}>
                   {index > 0 && (
                     <TravelInfo>
-                      <span>{travelMode === google.maps.TravelMode.WALKING ? '🚶‍♂️' : travelMode === google.maps.TravelMode.DRIVING ? '🚗' : '🚆'}</span>
+                      <span>{travelMode === 'WALKING' ? '🚶‍♂️' : travelMode === 'DRIVING' ? '🚗' : '🚆'}</span>
                       <span>15 min {travelMode.toLowerCase()} (0.7 miles)</span>
                     </TravelInfo>
                   )}
@@ -475,7 +481,20 @@ const ViewCrawl: React.FC = () => {
           <ButtonGroup>
             <PrimaryButton>Share Crawl</PrimaryButton>
             <SecondaryButton>Export PDF</SecondaryButton>
-            <OutlineButton>Add to Calendar</OutlineButton>
+            <OutlineButton 
+              onClick={() => {
+                // Shuffle venue order before generating route
+                if (crawlData) {
+                  const shuffledVenues = [...crawlData.venues].sort(() => Math.random() - 0.5);
+                  setCrawlData({
+                    ...crawlData,
+                    venues: shuffledVenues
+                  });
+                }
+              }}
+            >
+              Reorder Venues
+            </OutlineButton>
           </ButtonGroup>
         </InfoPanel>
         
