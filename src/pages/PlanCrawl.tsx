@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import SearchForm from '../components/SearchForm';
 import ResultsList from '../components/ResultsList';
 import MapView from '../components/MapView';
@@ -68,7 +69,34 @@ const ViewButton = styled.button<{ $active: boolean }>`
   }
 `;
 
+const ButtonContainer = styled.div`
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+`;
+
+const GenerateRouteButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background-color: ${props => props.theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #ff5252;
+  }
+  
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+`;
+
 const PlanCrawl: React.FC = () => {
+  const navigate = useNavigate();
   const [view, setView] = useState<'list' | 'map'>('list');
   const [searchResults, setSearchResults] = useState<Restaurant[]>([]);
   const [selectedVenues, setSelectedVenues] = useState<Restaurant[]>([]);
@@ -97,6 +125,12 @@ const PlanCrawl: React.FC = () => {
     }
   };
   
+  const handleGenerateRoute = () => {
+    // Store selected venues in sessionStorage for use in ViewCrawl
+    sessionStorage.setItem('selectedVenues', JSON.stringify(selectedVenues));
+    navigate('/crawl/new');
+  };
+  
   return (
     <PlanContainer>
       <Title>Plan Your Food Crawl</Title>
@@ -106,10 +140,20 @@ const PlanCrawl: React.FC = () => {
           <SearchForm onSearch={handleSearch} isLoading={isLoading} />
           
           {selectedVenues.length > 0 && (
-            <SelectedVenues 
-              venues={selectedVenues} 
-              onRemoveVenue={(id: string) => setSelectedVenues(selectedVenues.filter(venue => venue.id !== id))}
-            />
+            <>
+              <SelectedVenues 
+                venues={selectedVenues} 
+                onRemoveVenue={(id: string) => setSelectedVenues(selectedVenues.filter(venue => venue.id !== id))}
+              />
+              <ButtonContainer>
+                <GenerateRouteButton 
+                  onClick={handleGenerateRoute}
+                  disabled={selectedVenues.length < 2}
+                >
+                  Generate Route with {selectedVenues.length} Venues
+                </GenerateRouteButton>
+              </ButtonContainer>
+            </>
           )}
         </LeftColumn>
         

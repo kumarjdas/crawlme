@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { Restaurant } from '../types/Restaurant';
 
 const ViewCrawlContainer = styled.div`
@@ -161,69 +162,223 @@ const OutlineButton = styled(Button)`
   color: ${props => props.theme.colors.dark};
 `;
 
+const BackButton = styled.button`
+  padding: 0.5rem 1rem;
+  background-color: white;
+  color: ${props => props.theme.colors.primary};
+  border: 1px solid ${props => props.theme.colors.primary};
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover {
+    background-color: ${props => props.theme.colors.light};
+  }
+`;
+
+const TravelMode = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+`;
+
+const ModeButton = styled.button<{ $active: boolean }>`
+  padding: 0.5rem 1rem;
+  background-color: ${props => props.$active ? props.theme.colors.primary : 'white'};
+  color: ${props => props.$active ? 'white' : props.theme.colors.dark};
+  border: 1px solid ${props => props.$active ? props.theme.colors.primary : '#ddd'};
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: ${props => props.$active ? props.theme.colors.primary : props.theme.colors.light};
+  }
+`;
+
+const libraries = ['places', 'directions'];
+
 const ViewCrawl: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [crawlData, setCrawlData] = useState<{
     venues: Restaurant[];
     totalDistance: string;
     totalDuration: string;
-    transportMode: 'walking' | 'driving' | 'transit';
+    transportMode: 'WALKING' | 'DRIVING' | 'TRANSIT';
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const [travelMode, setTravelMode] = useState<google.maps.TravelMode>(google.maps.TravelMode.WALKING);
   
+  // Initialize Google Maps
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: 'AIzaSyAvnVdLIoAMMSzLU1DFxuMsv-WkiVQo-DE',
+    libraries: libraries as any
+  });
+  
+  // Load selected venues from sessionStorage
   useEffect(() => {
-    // In a real application, this would fetch data from an API
     const fetchCrawl = async () => {
       setIsLoading(true);
       
-      // Simulating API call with timeout
-      setTimeout(() => {
-        // Sample data for demonstration
-        const mockCrawlData = {
-          venues: [
-            {
-              id: '1',
-              name: 'Delicious Burger Joint',
-              rating: 4.5,
-              price: '$$',
-              imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500',
-              address: '123 Main St',
-              categories: ['Burgers', 'American'],
-              coordinates: { latitude: 37.7749, longitude: -122.4194 }
-            },
-            {
-              id: '2',
-              name: 'Amazing Taco Place',
-              rating: 4.7,
-              price: '$',
-              imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500',
-              address: '456 Elm St',
-              categories: ['Mexican', 'Tacos'],
-              coordinates: { latitude: 37.7850, longitude: -122.4100 }
-            },
-            {
-              id: '3',
-              name: 'Perfect Pizza Spot',
-              rating: 4.2,
-              price: '$$',
-              imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500',
-              address: '789 Oak St',
-              categories: ['Pizza', 'Italian'],
-              coordinates: { latitude: 37.7950, longitude: -122.4300 }
-            }
-          ],
-          totalDistance: '2.3 miles',
-          totalDuration: '1 hour 45 minutes',
-          transportMode: 'walking' as const
-        };
-        
-        setCrawlData(mockCrawlData);
+      try {
+        // For a new crawl, get venues from sessionStorage
+        if (id === 'new') {
+          const storedVenues = sessionStorage.getItem('selectedVenues');
+          
+          if (storedVenues) {
+            const venues = JSON.parse(storedVenues) as Restaurant[];
+            
+            setCrawlData({
+              venues,
+              totalDistance: 'Calculating...',
+              totalDuration: 'Calculating...',
+              transportMode: 'WALKING'
+            });
+          } else {
+            // No venues found, redirect back to plan page
+            navigate('/plan');
+            return;
+          }
+        } else {
+          // Simulating API call for existing crawl with timeout
+          setTimeout(() => {
+            // Sample data for demonstration
+            const mockCrawlData = {
+              venues: [
+                {
+                  id: '1',
+                  name: 'Delicious Burger Joint',
+                  rating: 4.5,
+                  price: '$$',
+                  imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500',
+                  address: '123 Main St',
+                  categories: ['Burgers', 'American'],
+                  coordinates: { latitude: 37.7749, longitude: -122.4194 }
+                },
+                {
+                  id: '2',
+                  name: 'Amazing Taco Place',
+                  rating: 4.7,
+                  price: '$',
+                  imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500',
+                  address: '456 Elm St',
+                  categories: ['Mexican', 'Tacos'],
+                  coordinates: { latitude: 37.7850, longitude: -122.4100 }
+                },
+                {
+                  id: '3',
+                  name: 'Perfect Pizza Spot',
+                  rating: 4.2,
+                  price: '$$',
+                  imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500',
+                  address: '789 Oak St',
+                  categories: ['Pizza', 'Italian'],
+                  coordinates: { latitude: 37.7950, longitude: -122.4300 }
+                }
+              ],
+              totalDistance: '2.3 miles',
+              totalDuration: '1 hour 45 minutes',
+              transportMode: 'WALKING' as const
+            };
+            
+            setCrawlData(mockCrawlData);
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Error fetching crawl data:', error);
+      } finally {
         setIsLoading(false);
-      }, 1000);
+      }
     };
     
     fetchCrawl();
-  }, [id]);
+  }, [id, navigate]);
+  
+  // Calculate directions when venues or travel mode changes
+  useEffect(() => {
+    if (!isLoaded || !crawlData?.venues || crawlData.venues.length < 2) return;
+    
+    const directionsService = new google.maps.DirectionsService();
+    
+    // Create an array of waypoints from venues (excluding first and last)
+    const waypoints = crawlData.venues.slice(1, -1).map(venue => ({
+      location: new google.maps.LatLng(
+        venue.coordinates.latitude,
+        venue.coordinates.longitude
+      ),
+      stopover: true
+    }));
+    
+    // Use first venue as origin and last venue as destination
+    const origin = new google.maps.LatLng(
+      crawlData.venues[0].coordinates.latitude,
+      crawlData.venues[0].coordinates.longitude
+    );
+    
+    const destination = new google.maps.LatLng(
+      crawlData.venues[crawlData.venues.length - 1].coordinates.latitude,
+      crawlData.venues[crawlData.venues.length - 1].coordinates.longitude
+    );
+    
+    directionsService.route(
+      {
+        origin,
+        destination,
+        waypoints,
+        travelMode,
+        optimizeWaypoints: true
+      },
+      (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+          setDirections(result);
+          
+          // Calculate total distance and duration
+          if (result?.routes[0]?.legs) {
+            let totalDistance = 0;
+            let totalDuration = 0;
+            
+            result.routes[0].legs.forEach((leg) => {
+              totalDistance += leg.distance?.value || 0;
+              totalDuration += leg.duration?.value || 0;
+            });
+            
+            // Convert meters to miles
+            const distanceInMiles = (totalDistance / 1609).toFixed(1);
+            
+            // Convert seconds to hours and minutes
+            const hours = Math.floor(totalDuration / 3600);
+            const minutes = Math.floor((totalDuration % 3600) / 60);
+            const durationString = hours > 0 
+              ? `${hours} hour${hours > 1 ? 's' : ''} ${minutes} minute${minutes > 1 ? 's' : ''}`
+              : `${minutes} minute${minutes > 1 ? 's' : ''}`;
+            
+            setCrawlData({
+              ...crawlData,
+              totalDistance: `${distanceInMiles} miles`,
+              totalDuration: durationString
+            });
+          }
+        } else {
+          console.error(`Directions request failed: ${status}`);
+        }
+      }
+    );
+  }, [isLoaded, crawlData?.venues, travelMode]);
+  
+  const handleBackClick = () => {
+    navigate('/plan');
+  };
+  
+  const handleTravelModeChange = (mode: google.maps.TravelMode) => {
+    setTravelMode(mode);
+  };
   
   if (isLoading) {
     return (
@@ -244,6 +399,10 @@ const ViewCrawl: React.FC = () => {
   
   return (
     <ViewCrawlContainer>
+      <BackButton onClick={handleBackClick}>
+        ← Back to Search
+      </BackButton>
+      
       <Title>Your Food Crawl</Title>
       
       <CrawlGrid>
@@ -264,17 +423,38 @@ const ViewCrawl: React.FC = () => {
               </SummaryItem>
               <SummaryItem>
                 <strong>Transport Mode:</strong>
-                <span>{crawlData.transportMode.charAt(0).toUpperCase() + crawlData.transportMode.slice(1)}</span>
+                <span>{crawlData.transportMode.charAt(0).toUpperCase() + crawlData.transportMode.slice(1).toLowerCase()}</span>
               </SummaryItem>
             </CrawlSummary>
+            
+            <TravelMode>
+              <ModeButton 
+                $active={travelMode === google.maps.TravelMode.WALKING}
+                onClick={() => handleTravelModeChange(google.maps.TravelMode.WALKING)}
+              >
+                🚶‍♂️ Walking
+              </ModeButton>
+              <ModeButton 
+                $active={travelMode === google.maps.TravelMode.DRIVING}
+                onClick={() => handleTravelModeChange(google.maps.TravelMode.DRIVING)}
+              >
+                🚗 Driving
+              </ModeButton>
+              <ModeButton 
+                $active={travelMode === google.maps.TravelMode.TRANSIT}
+                onClick={() => handleTravelModeChange(google.maps.TravelMode.TRANSIT)}
+              >
+                🚆 Transit
+              </ModeButton>
+            </TravelMode>
             
             <VenueList>
               {crawlData.venues.map((venue, index) => (
                 <React.Fragment key={venue.id}>
                   {index > 0 && (
                     <TravelInfo>
-                      <span>🚶‍♂️</span>
-                      <span>15 min walk (0.7 miles)</span>
+                      <span>{travelMode === google.maps.TravelMode.WALKING ? '🚶‍♂️' : travelMode === google.maps.TravelMode.DRIVING ? '🚗' : '🚆'}</span>
+                      <span>15 min {travelMode.toLowerCase()} (0.7 miles)</span>
                     </TravelInfo>
                   )}
                   <VenueItem>
@@ -300,8 +480,48 @@ const ViewCrawl: React.FC = () => {
         </InfoPanel>
         
         <MapContainer>
-          <p>Map will be displayed here with the optimized route.</p>
-          {/* In a real application, this would use Google Maps API to display the route */}
+          {isLoaded ? (
+            <GoogleMap
+              mapContainerStyle={{
+                width: '100%',
+                height: '100%',
+                minHeight: '500px'
+              }}
+              center={crawlData.venues.length > 0 ? {
+                lat: crawlData.venues[0].coordinates.latitude,
+                lng: crawlData.venues[0].coordinates.longitude
+              } : { lat: 37.7749, lng: -122.4194 }}
+              zoom={13}
+            >
+              {/* Display markers for each venue */}
+              {crawlData.venues.map((venue, index) => (
+                <Marker
+                  key={venue.id}
+                  position={{
+                    lat: venue.coordinates.latitude,
+                    lng: venue.coordinates.longitude
+                  }}
+                  label={(index + 1).toString()}
+                />
+              ))}
+              
+              {/* Display route directions */}
+              {directions && (
+                <DirectionsRenderer
+                  directions={directions}
+                  options={{
+                    suppressMarkers: true,
+                    polylineOptions: {
+                      strokeColor: '#FF6B6B',
+                      strokeWeight: 5
+                    }
+                  }}
+                />
+              )}
+            </GoogleMap>
+          ) : (
+            <p>Loading map...</p>
+          )}
         </MapContainer>
       </CrawlGrid>
     </ViewCrawlContainer>

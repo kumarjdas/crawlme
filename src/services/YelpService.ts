@@ -124,7 +124,7 @@ export const YelpService = {
           radius: radiusInMeters,
           price: priceFilter,
           limit: 20,
-          sort_by: 'rating'
+          sort_by: 'best_match'
         }
       });
       
