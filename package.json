@@ -3,12 +3,10 @@
   "version": "1.0.0",
   "description": "Food Crawl Planner Web Application",
   "homepage": "https://kumarjdas.github.io/crawlme",
-  "scripts": {
-  "predeploy": "npm run build",
-  "deploy": "gh-pages -d dist"
-}
   "main": "index.js",
   "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "start": "webpack serve --mode development",
     "build": "webpack --mode production",
     "test": "echo \"Error: no test specified\" && exit 1"
