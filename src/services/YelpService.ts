@@ -150,11 +150,6 @@ export const YelpService = {
         console.error('Visit https://cors-anywhere.herokuapp.com/corsdemo and click the button');
       }
       
-      // For API key issues
-      if (YELP_API_KEY === 'YOUR_YELP_API_KEY_HERE') {
-        console.error('You need to update the YELP_API_KEY in YelpService.ts with your actual API key');
-      }
-      
       // For demo purposes, return mock data
       console.log('Falling back to mock data');
       return getMockRestaurants(params);

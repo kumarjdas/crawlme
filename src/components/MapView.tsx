@@ -132,6 +132,20 @@ const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSele
             <li>Set up appropriate API key restrictions</li>
           </ol>
         </p>
+        <p>
+          <strong>If you see a "RefererNotAllowedMapError":</strong><br/>
+          You need to add <code>http://localhost:3000/*</code> to your allowed referrers in the Google Cloud Console.
+        </p>
+        <p>
+          <strong>Steps to fix API key restrictions:</strong>
+          <ol>
+            <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Google Cloud Console &gt; APIs &amp; Services &gt; Credentials</a></li>
+            <li>Click on your API key</li>
+            <li>Under "Application restrictions", select "HTTP referrers (websites)"</li>
+            <li>Add <code>http://localhost:3000/*</code> to the allowed referrers</li>
+            <li>Click "Save" and wait a few minutes for changes to apply</li>
+          </ol>
+        </p>
       </ErrorState>
     );
   }
