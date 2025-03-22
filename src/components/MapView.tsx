@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, InfoWindow, Marker } from '@react-google-maps/api';
 import { Restaurant } from '../types/Restaurant';
 
 interface MapViewProps {
@@ -38,11 +38,11 @@ const InfoWindowDetails = styled.div`
   color: #666;
 `;
 
-const InfoWindowButton = styled.button<{ isSelected: boolean }>`
+const InfoWindowButton = styled.button<{ $isSelected: boolean }>`
   padding: 0.5rem;
   margin-top: 0.5rem;
-  background-color: ${props => props.isSelected ? props.theme.colors.primary : 'white'};
-  color: ${props => props.isSelected ? 'white' : props.theme.colors.primary};
+  background-color: ${props => props.$isSelected ? props.theme.colors.primary : 'white'};
+  color: ${props => props.$isSelected ? 'white' : props.theme.colors.primary};
   border: 1px solid ${props => props.theme.colors.primary};
   border-radius: 4px;
   font-weight: 500;
@@ -59,10 +59,11 @@ const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSele
   const [selectedMarker, setSelectedMarker] = useState<Restaurant | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   
-  // In a real application, this would use a real API key from environment variables
+  // Use the provided API key
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: 'YOUR_API_KEY_HERE' // This is a placeholder
+    googleMapsApiKey: 'AIzaSyAvnVdLIoAMMSzLU1DFxuMsv-WkiVQo-DE',
+    // Note: We'll add a comment about this warning
   });
   
   const onMapLoad = useCallback((map: google.maps.Map) => {
@@ -115,6 +116,8 @@ const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSele
   
   return (
     <MapContainer>
+      {/* Note: We see a marker deprecation warning, but we'll keep using Marker for now.
+          To upgrade to AdvancedMarkerElement would require additional setup and dependencies. */}
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={center}
@@ -132,6 +135,7 @@ const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSele
                 lng: restaurant.coordinates.longitude
               }}
               icon={{
+                // Use custom SVG for markers to avoid the deprecation warning in a more complete implementation
                 url: isSelected 
                   ? 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
                   : 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
@@ -157,7 +161,7 @@ const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSele
               </InfoWindowDetails>
               <InfoWindowDetails>{selectedMarker.address}</InfoWindowDetails>
               <InfoWindowButton
-                isSelected={selectedVenues.some(venue => venue.id === selectedMarker.id)}
+                $isSelected={selectedVenues.some(venue => venue.id === selectedMarker.id)}
                 onClick={() => onToggleSelection(selectedMarker)}
               >
                 {selectedVenues.some(venue => venue.id === selectedMarker.id)

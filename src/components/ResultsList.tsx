@@ -52,10 +52,10 @@ const ResultsGrid = styled.div`
   gap: 1.5rem;
 `;
 
-const ResultCard = styled.div<{ isSelected: boolean }>`
+const ResultCard = styled.div<{ $isSelected: boolean }>`
   display: flex;
-  background-color: ${props => props.isSelected ? props.theme.colors.light : 'white'};
-  border: 1px solid ${props => props.isSelected ? props.theme.colors.primary : '#eee'};
+  background-color: ${props => props.$isSelected ? props.theme.colors.light : 'white'};
+  border: 1px solid ${props => props.$isSelected ? props.theme.colors.primary : '#eee'};
   border-radius: 8px;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -66,10 +66,10 @@ const ResultCard = styled.div<{ isSelected: boolean }>`
   }
 `;
 
-const ResultImage = styled.div<{ imageUrl: string }>`
+const ResultImage = styled.div<{ $imageUrl: string }>`
   width: 120px;
   min-width: 120px;
-  background-image: url(${props => props.imageUrl});
+  background-image: url(${props => props.$imageUrl});
   background-size: cover;
   background-position: center;
   
@@ -125,10 +125,10 @@ const ResultAddress = styled.p`
   margin-top: auto;
 `;
 
-const SelectButton = styled.button<{ isSelected: boolean }>`
+const SelectButton = styled.button<{ $isSelected: boolean }>`
   padding: 0.5rem 1rem;
-  background-color: ${props => props.isSelected ? props.theme.colors.primary : 'white'};
-  color: ${props => props.isSelected ? 'white' : props.theme.colors.primary};
+  background-color: ${props => props.$isSelected ? props.theme.colors.primary : 'white'};
+  color: ${props => props.$isSelected ? 'white' : props.theme.colors.primary};
   border: 1px solid ${props => props.theme.colors.primary};
   border-radius: 4px;
   font-weight: 500;
@@ -137,7 +137,7 @@ const SelectButton = styled.button<{ isSelected: boolean }>`
   margin-top: 0.5rem;
   
   &:hover {
-    background-color: ${props => props.isSelected ? '#ff5252' : props.theme.colors.light};
+    background-color: ${props => props.$isSelected ? '#ff5252' : props.theme.colors.light};
   }
 `;
 
@@ -194,8 +194,8 @@ const ResultsList: React.FC<ResultsListProps> = ({
           const isSelected = selectedVenues.some(venue => venue.id === restaurant.id);
           
           return (
-            <ResultCard key={restaurant.id} isSelected={isSelected}>
-              <ResultImage imageUrl={restaurant.imageUrl} />
+            <ResultCard key={restaurant.id} $isSelected={isSelected}>
+              <ResultImage $imageUrl={restaurant.imageUrl} />
               <ResultInfo>
                 <ResultHeader>
                   <ResultName>{restaurant.name}</ResultName>
@@ -216,7 +216,7 @@ const ResultsList: React.FC<ResultsListProps> = ({
                 <ResultAddress>{restaurant.address}</ResultAddress>
                 
                 <SelectButton 
-                  isSelected={isSelected}
+                  $isSelected={isSelected}
                   onClick={() => onToggleSelection(restaurant)}
                 >
                   {isSelected ? 'Remove' : 'Add to Crawl'}

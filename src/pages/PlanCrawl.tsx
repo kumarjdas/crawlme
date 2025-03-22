@@ -5,6 +5,8 @@ import ResultsList from '../components/ResultsList';
 import MapView from '../components/MapView';
 import SelectedVenues from '../components/SelectedVenues';
 import { Restaurant } from '../types/Restaurant';
+import { YelpService } from '../services/YelpService';
+import { SearchParams } from '../components/SearchForm';
 
 const PlanContainer = styled.div`
   max-width: 1200px;
@@ -52,14 +54,14 @@ const ToggleView = styled.div`
   border-bottom: 1px solid #eee;
 `;
 
-const ViewButton = styled.button<{ active: boolean }>`
+const ViewButton = styled.button<{ $active: boolean }>`
   flex: 1;
   padding: 1rem;
-  background-color: ${props => props.active ? props.theme.colors.light : 'white'};
+  background-color: ${props => props.$active ? props.theme.colors.light : 'white'};
   border: none;
   cursor: pointer;
   font-weight: 500;
-  color: ${props => props.active ? props.theme.colors.primary : props.theme.colors.dark};
+  color: ${props => props.$active ? props.theme.colors.primary : props.theme.colors.dark};
   
   &:first-child {
     border-right: 1px solid #eee;
@@ -72,49 +74,19 @@ const PlanCrawl: React.FC = () => {
   const [selectedVenues, setSelectedVenues] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  const handleSearch = async (searchParams: any) => {
-    // In a real application, this would call an API
+  const handleSearch = async (searchParams: SearchParams) => {
     setIsLoading(true);
     
-    // Simulating API call with timeout
-    setTimeout(() => {
-      // Sample data for demonstration
-      const mockResults: Restaurant[] = [
-        {
-          id: '1',
-          name: 'Delicious Burger Joint',
-          rating: 4.5,
-          price: '$$',
-          imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500',
-          address: '123 Main St',
-          categories: ['Burgers', 'American'],
-          coordinates: { latitude: 37.7749, longitude: -122.4194 }
-        },
-        {
-          id: '2',
-          name: 'Amazing Taco Place',
-          rating: 4.7,
-          price: '$',
-          imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500',
-          address: '456 Elm St',
-          categories: ['Mexican', 'Tacos'],
-          coordinates: { latitude: 37.7850, longitude: -122.4100 }
-        },
-        {
-          id: '3',
-          name: 'Perfect Pizza Spot',
-          rating: 4.2,
-          price: '$$',
-          imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500',
-          address: '789 Oak St',
-          categories: ['Pizza', 'Italian'],
-          coordinates: { latitude: 37.7950, longitude: -122.4300 }
-        }
-      ];
-      
-      setSearchResults(mockResults);
+    try {
+      // Call YelpService to get restaurant data
+      const results = await YelpService.searchRestaurants(searchParams);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching for restaurants:', error);
+      // Handle error appropriately - show error message to user
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
   
   const toggleVenueSelection = (restaurant: Restaurant) => {
@@ -145,13 +117,13 @@ const PlanCrawl: React.FC = () => {
           <ResultsContainer>
             <ToggleView>
               <ViewButton 
-                active={view === 'list'} 
+                $active={view === 'list'} 
                 onClick={() => setView('list')}
               >
                 List View
               </ViewButton>
               <ViewButton 
-                active={view === 'map'} 
+                $active={view === 'map'} 
                 onClick={() => setView('map')}
               >
                 Map View
