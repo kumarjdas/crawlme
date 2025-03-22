@@ -21,6 +21,14 @@ const LoadingState = styled.div`
   color: #666;
 `;
 
+const ErrorState = styled.div`
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #d32f2f;
+  background-color: #ffebee;
+  border-radius: 4px;
+`;
+
 const InfoWindowContent = styled.div`
   display: flex;
   flex-direction: column;
@@ -55,16 +63,28 @@ const mapContainerStyle = {
   height: '100%'
 };
 
+// Google Maps API libraries to load
+const libraries = ['places'];
+
 const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSelection }) => {
   const [selectedMarker, setSelectedMarker] = useState<Restaurant | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   
   // Use the provided API key
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: 'AIzaSyAvnVdLIoAMMSzLU1DFxuMsv-WkiVQo-DE',
-    // Note: We'll add a comment about this warning
+    libraries: libraries as any
   });
+  
+  // Handle Google Maps API loading error
+  useEffect(() => {
+    if (loadError) {
+      console.error('Google Maps loading error:', loadError);
+      setMapError('Failed to load Google Maps. Please check your API key and configuration.');
+    }
+  }, [loadError]);
   
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
@@ -98,6 +118,24 @@ const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSele
     }
   }, [results]);
   
+  if (loadError || mapError) {
+    return (
+      <ErrorState>
+        <p>
+          <strong>Error loading Google Maps:</strong> {mapError || 'Please check your API key and network connection.'}
+        </p>
+        <p>
+          Make sure you have:
+          <ol>
+            <li>Enabled billing on your Google Cloud project</li>
+            <li>Enabled the Maps JavaScript API</li>
+            <li>Set up appropriate API key restrictions</li>
+          </ol>
+        </p>
+      </ErrorState>
+    );
+  }
+  
   if (!isLoaded) {
     return (
       <LoadingState>
@@ -123,6 +161,10 @@ const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSele
         center={center}
         zoom={13}
         onLoad={onMapLoad}
+        options={{
+          streetViewControl: false,
+          fullscreenControl: false
+        }}
       >
         {results.map(restaurant => {
           const isSelected = selectedVenues.some(venue => venue.id === restaurant.id);

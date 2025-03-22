@@ -1,15 +1,16 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { Restaurant } from '../types/Restaurant';
 import { SearchParams } from '../components/SearchForm';
 
 // Note: In a production environment, this would be handled by a backend service
 // to keep the API key secure. For demonstration purposes, we're using a frontend service.
 
-// This is a placeholder for the Yelp API key
+// Replace this with your actual Yelp API key
 // In a real application, this would be stored in environment variables
-const YELP_API_KEY = 'YOUR_YELP_API_KEY_HERE';
+const YELP_API_KEY = 'YOUR_YELP_API_KEY_HERE'; // You should have replaced this with your actual key
 
-// The base URL for the Yelp API
+// The base URL for the Yelp API with CORS Anywhere proxy
+// You need to request temporary access at https://cors-anywhere.herokuapp.com/corsdemo
 const YELP_BASE_URL = 'https://cors-anywhere.herokuapp.com/https://api.yelp.com/v3';
 
 // Create an axios instance for Yelp API calls
@@ -19,6 +20,7 @@ const yelpApi = axios.create({
     Authorization: `Bearer ${YELP_API_KEY}`,
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 second timeout
 });
 
 export interface YelpBusinessResponse {
@@ -63,8 +65,8 @@ const mapYelpBusinessToRestaurant = (business: YelpBusinessResponse): Restaurant
     name: business.name,
     rating: business.rating,
     price: business.price || '$',
-    imageUrl: business.image_url,
-    address: `${business.location.address1}, ${business.location.city}, ${business.location.state} ${business.location.zip_code}`,
+    imageUrl: business.image_url || 'https://via.placeholder.com/150?text=No+Image',
+    address: `${business.location.address1 || ''}, ${business.location.city}, ${business.location.state} ${business.location.zip_code}`,
     categories: business.categories.map(category => category.title),
     coordinates: business.coordinates,
     phone: business.display_phone,
@@ -72,11 +74,38 @@ const mapYelpBusinessToRestaurant = (business: YelpBusinessResponse): Restaurant
   };
 };
 
+// Format error messages for better debugging
+const formatErrorMessage = (error: any): string => {
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError;
+    
+    if (axiosError.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      return `API Error ${axiosError.response.status}: ${JSON.stringify(axiosError.response.data)}`;
+    } else if (axiosError.request) {
+      // The request was made but no response was received
+      if (axiosError.code === 'ECONNABORTED') {
+        return 'The request timed out. Please try again.';
+      }
+      return 'No response received from the server. Please check your internet connection.';
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      return `Request Error: ${axiosError.message}`;
+    }
+  }
+  
+  // For non-Axios errors
+  return error.message || 'An unknown error occurred';
+};
+
 // Service methods
 export const YelpService = {
   // Search restaurants based on parameters
   searchRestaurants: async (params: SearchParams): Promise<Restaurant[]> => {
     try {
+      console.log('Searching for restaurants with params:', params);
+      
       // Note: In a production app, these params would be validated and sanitized
       const { foodCategory, location, radius, priceLevel, ratingThreshold } = params;
       
@@ -85,6 +114,8 @@ export const YelpService = {
       
       // Convert price level array to comma-separated string
       const priceFilter = priceLevel.map(price => price.length).join(',');
+      
+      console.log(`Making API request to Yelp for ${foodCategory} in ${location}`);
       
       const response = await yelpApi.get<YelpSearchResponse>('/businesses/search', {
         params: {
@@ -97,72 +128,96 @@ export const YelpService = {
         }
       });
       
+      console.log(`Received ${response.data.businesses.length} results from Yelp`);
+      
       // Filter by rating threshold if needed (can also be done on frontend)
       const filteredBusinesses = response.data.businesses.filter(
         business => business.rating >= ratingThreshold
       );
       
+      console.log(`Filtered to ${filteredBusinesses.length} results after rating threshold`);
+      
       // Map to our Restaurant type
       return filteredBusinesses.map(mapYelpBusinessToRestaurant);
     } catch (error) {
+      const errorMessage = formatErrorMessage(error);
       console.error('Error searching restaurants:', error);
+      console.error('Formatted error message:', errorMessage);
+      
+      // For 403 errors related to CORS Anywhere
+      if (axios.isAxiosError(error) && error.response?.status === 403) {
+        console.error('You may need to request temporary access to the CORS Anywhere demo server:');
+        console.error('Visit https://cors-anywhere.herokuapp.com/corsdemo and click the button');
+      }
+      
+      // For API key issues
+      if (YELP_API_KEY === 'YOUR_YELP_API_KEY_HERE') {
+        console.error('You need to update the YELP_API_KEY in YelpService.ts with your actual API key');
+      }
+      
       // For demo purposes, return mock data
-      return getMockRestaurants();
+      console.log('Falling back to mock data');
+      return getMockRestaurants(params);
     }
   }
 };
 
-// Mock data for development/demo purposes
-const getMockRestaurants = (): Restaurant[] => {
+// Mock data for development/demo purposes with location awareness
+const getMockRestaurants = (params?: SearchParams): Restaurant[] => {
+  // Use search parameters to customize mock data if available
+  const locationName = params?.location || 'San Francisco, CA';
+  const category = params?.foodCategory || 'Food';
+  
+  // Return more tailored mock data based on search parameters
   return [
     {
       id: '1',
-      name: 'Delicious Burger Joint',
+      name: `Best ${category} Place`,
       rating: 4.5,
       price: '$$',
       imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500',
-      address: '123 Main St, San Francisco, CA 94105',
-      categories: ['Burgers', 'American'],
+      address: `123 Main St, ${locationName}`,
+      categories: [category, 'American'],
       coordinates: { latitude: 37.7749, longitude: -122.4194 }
     },
     {
       id: '2',
-      name: 'Amazing Taco Place',
+      name: `Amazing ${category} Spot`,
       rating: 4.7,
       price: '$',
       imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500',
-      address: '456 Elm St, San Francisco, CA 94108',
-      categories: ['Mexican', 'Tacos'],
+      address: `456 Elm St, ${locationName}`,
+      categories: [category, 'Fusion'],
       coordinates: { latitude: 37.7850, longitude: -122.4100 }
     },
     {
       id: '3',
-      name: 'Perfect Pizza Spot',
+      name: `Perfect ${category} Joint`,
       rating: 4.2,
       price: '$$',
       imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500',
-      address: '789 Oak St, San Francisco, CA 94110',
-      categories: ['Pizza', 'Italian'],
+      address: `789 Oak St, ${locationName}`,
+      categories: [category, 'Gourmet'],
       coordinates: { latitude: 37.7950, longitude: -122.4300 }
     },
     {
       id: '4',
-      name: 'Sushi Paradise',
+      name: `${category} Paradise`,
       rating: 4.8,
       price: '$$$',
       imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500',
-      address: '101 Pine St, San Francisco, CA 94111',
-      categories: ['Japanese', 'Sushi'],
+      address: `101 Pine St, ${locationName}`,
+      categories: [category, 'Fine Dining'],
       coordinates: { latitude: 37.7920, longitude: -122.4080 }
     },
     {
       id: '5',
-      name: 'Noodle House',
+      name: `${category} Express`,
       rating: 4.3,
       price: '$$',
       imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500',
-      address: '202 Market St, San Francisco, CA 94103',
-      categories: ['Chinese', 'Noodles'],
+      address: `202 Market St, ${locationName}`,
+      categories: [category, 'Fast Casual'],
       coordinates: { latitude: 37.7890, longitude: -122.4150 }
     }
   ];
