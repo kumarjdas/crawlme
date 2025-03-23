@@ -108,8 +108,8 @@ const SubmitButton = styled.button`
 `;
 
 const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading, initialValues }) => {
-  const [foodCategory, setFoodCategory] = useState('');
-  const [location, setLocation] = useState('');
+  const [foodCategory, setFoodCategory] = useState('burgers');
+  const [location, setLocation] = useState('900 chestnut st, san carlos, ca');
   const [radius, setRadius] = useState(10);
   const [priceFilter, setPriceFilter] = useState<string[]>(['$', '$$']);
   

@@ -74,7 +74,7 @@ const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSele
   // Use the provided API key
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: 'AIzaSyDhFiV-WA9a3fIdKMQ-lJuoGLgkKmBnkTY',
+    googleMapsApiKey: 'AIzaSyBc9QpzD9N-5OITbvA3pjT_iVoBjzVb8gQ',
     libraries: libraries as any,
     version: "weekly",
     language: "en"
