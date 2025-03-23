@@ -44,22 +44,6 @@ const MapContainer = styled.div`
   position: relative;
 `;
 
-const ApiWarning = styled.div`
-  background-color: #fff3cd;
-  color: #856404;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  
-  a {
-    color: #856404;
-    text-decoration: underline;
-  }
-`;
-
 const CrawlInfo = styled.div`
   margin-bottom: 2rem;
 `;
@@ -387,7 +371,7 @@ const ViewCrawl: React.FC = () => {
           crawlData.venues[0].coordinates.longitude
         );
       
-      // Create an array of waypoints from all venues
+      // Create waypoints from venues (excluding start/end points would be handled automatically)
       const waypoints = crawlData.venues.map(venue => ({
         location: new google.maps.LatLng(
           venue.coordinates.latitude,
@@ -402,6 +386,13 @@ const ViewCrawl: React.FC = () => {
         travelMode === 'DRIVING' ? google.maps.TravelMode.DRIVING :
         travelMode === 'BICYCLING' ? google.maps.TravelMode.BICYCLING :
         google.maps.TravelMode.TRANSIT;
+      
+      console.log('Calculating route with:', {
+        origin: startPoint.toString(),
+        destination: startPoint.toString(),
+        waypoints: waypoints.map(wp => wp.location.toString()),
+        travelMode: googleTravelMode
+      });
       
       directionsService.route(
         {
@@ -590,28 +581,6 @@ const ViewCrawl: React.FC = () => {
         </InfoPanel>
         
         <MapContainer>
-          <ApiWarning>
-            <span>⚠️</span>
-            <div>
-              {mapError ? (
-                <>
-                  <strong>Error Loading Google Maps:</strong> {mapError}
-                  <p>To fix this issue:</p>
-                </>
-              ) : (
-                <strong>Google Maps API Notice:</strong>
-              )}
-              <ol>
-                <li>Enable the "Directions API" in your <a href="https://console.cloud.google.com/apis/library/directions-backend.googleapis.com" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></li>
-                <li>Enable the "Maps JavaScript API" in your <a href="https://console.cloud.google.com/apis/library/maps-backend.googleapis.com" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></li>
-                <li>Make sure your API key has <strong>NO domain restrictions</strong> during development</li>
-                <li>Verify billing is enabled on your Google Cloud account (required for Maps API)</li>
-                <li>Try opening <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google Maps</a> in a new tab to confirm your internet connection</li>
-              </ol>
-              <p>After making these changes, refresh this page to try again.</p>
-            </div>
-          </ApiWarning>
-          
           {isLoaded ? (
             <MapWithDirections 
               venues={crawlData.venues}
