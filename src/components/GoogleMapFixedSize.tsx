@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { GoogleMap, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { Restaurant } from '../types/Restaurant';
 
 interface GoogleMapFixedSizeProps {
   results: Restaurant[];
   selectedVenues: Restaurant[];
   onSelectMarker?: (restaurant: Restaurant) => void;
+  directions?: google.maps.DirectionsResult | null;
 }
 
 // Fixed size container style to avoid IntersectionObserver issues
@@ -19,7 +20,8 @@ const mapContainerStyle = {
 const GoogleMapFixedSize: React.FC<GoogleMapFixedSizeProps> = ({ 
   results,
   selectedVenues,
-  onSelectMarker
+  onSelectMarker,
+  directions
 }) => {
   const mapRef = useRef<google.maps.Map | null>(null);
   
@@ -96,6 +98,18 @@ const GoogleMapFixedSize: React.FC<GoogleMapFixedSizeProps> = ({
           />
         );
       })}
+      {directions && (
+        <DirectionsRenderer
+          directions={directions}
+          options={{
+            suppressMarkers: true,
+            polylineOptions: {
+              strokeColor: '#FF6B6B',
+              strokeWeight: 5
+            }
+          }}
+        />
+      )}
     </GoogleMap>
   );
 };

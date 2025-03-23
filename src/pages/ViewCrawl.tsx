@@ -215,21 +215,8 @@ const MapWithDirections: React.FC<{venues: Restaurant[], directions: google.maps
       <GoogleMapFixedSize 
         results={venues}
         selectedVenues={venues}
+        directions={directions}
       />
-      
-      {/* Display route directions */}
-      {directions && (
-        <DirectionsRenderer
-          directions={directions}
-          options={{
-            suppressMarkers: true,
-            polylineOptions: {
-              strokeColor: '#FF6B6B',
-              strokeWeight: 5
-            }
-          }}
-        />
-      )}
     </div>
   );
 };
@@ -360,19 +347,19 @@ const ViewCrawl: React.FC = () => {
   // Calculate directions when venues or travel mode changes
   useEffect(() => {
     if (!isLoaded || !crawlData?.venues || crawlData.venues.length < 1) return;
+    if (!geocodedLocation) {
+      console.warn('No geocoded location for search location, cannot calculate proper route.');
+      return;
+    }
     
     try {
       const directionsService = new google.maps.DirectionsService();
       
-      // Use geocoded search location as start/end if available, otherwise use first venue
-      const startPoint = geocodedLocation || 
-        new google.maps.LatLng(
-          crawlData.venues[0].coordinates.latitude,
-          crawlData.venues[0].coordinates.longitude
-        );
+      // Use the geocoded search location as the start and end point
+      const startEndPoint = geocodedLocation;
       
-      // Create waypoints from venues (excluding start/end points would be handled automatically)
-      const waypoints = crawlData.venues.map(venue => ({
+      // Create waypoints from venue locations
+      const venueWaypoints = crawlData.venues.map(venue => ({
         location: new google.maps.LatLng(
           venue.coordinates.latitude,
           venue.coordinates.longitude
@@ -380,30 +367,31 @@ const ViewCrawl: React.FC = () => {
         stopover: true
       }));
       
-      // Convert string travel mode to Google Maps TravelMode
+      // Determine travel mode
       const googleTravelMode = 
         travelMode === 'WALKING' ? google.maps.TravelMode.WALKING :
         travelMode === 'DRIVING' ? google.maps.TravelMode.DRIVING :
         travelMode === 'BICYCLING' ? google.maps.TravelMode.BICYCLING :
         google.maps.TravelMode.TRANSIT;
       
-      console.log('Calculating route with:', {
-        origin: startPoint.toString(),
-        destination: startPoint.toString(),
-        waypoints: waypoints.map(wp => wp.location.toString()),
+      console.log('Calculating route:', {
+        origin: startEndPoint.toString(),
+        destination: startEndPoint.toString(),
+        waypoints: venueWaypoints.map(wp => wp.location.toString()),
         travelMode: googleTravelMode
       });
       
       directionsService.route(
         {
-          origin: startPoint,
-          destination: startPoint, // End at the same place we started
-          waypoints: waypoints,
+          origin: startEndPoint,
+          destination: startEndPoint,
+          waypoints: venueWaypoints,
           travelMode: googleTravelMode,
           optimizeWaypoints: false
         },
         (result, status) => {
           if (status === google.maps.DirectionsStatus.OK) {
+            console.log('Directions service returned success:', result);
             setDirections(result);
             
             // Calculate total distance and duration and store leg info
@@ -449,8 +437,16 @@ const ViewCrawl: React.FC = () => {
             }
           } else {
             console.error(`Directions request failed: ${status}`);
-            // Show error message explaining the required API
-            alert(`Error with Google Maps Directions: ${status}.\n\nMake sure you have enabled the "Directions API" in your Google Cloud Console. The "Routes API" is different and won't work for this feature.`);
+            // Only show error for specific cases, not for all errors
+            if (status === google.maps.DirectionsStatus.ZERO_RESULTS) {
+              alert(`No route could be found between the specified locations. Try a different travel mode or check that the locations are accessible.`);
+            } else if (status === google.maps.DirectionsStatus.NOT_FOUND) {
+              alert(`One or more of the locations could not be geocoded. Please check the addresses.`);
+            } else if (status === google.maps.DirectionsStatus.MAX_WAYPOINTS_EXCEEDED) {
+              alert(`The maximum number of waypoints has been exceeded. Please select fewer venues.`);
+            } else {
+              alert(`Error with Google Maps Directions: ${status}.\n\nMake sure you have enabled the "Directions API" in your Google Cloud Console.`);
+            }
           }
         }
       );
