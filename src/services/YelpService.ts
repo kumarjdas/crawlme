@@ -1,13 +1,10 @@
 import axios, { AxiosError } from 'axios';
 import { Restaurant } from '../types/Restaurant';
 import { SearchParams } from '../components/SearchForm';
+import { YELP_API_KEY } from '../constants/keys';
 
 // Note: In a production environment, this would be handled by a backend service
 // to keep the API key secure. For demonstration purposes, we're using a frontend service.
-
-// Replace this with your actual Yelp API key
-// In a real application, this would be stored in environment variables
-const YELP_API_KEY = 'HbvkHaKWzeqi8_74yOW4uaTZ3McM0XOe-Tt4fcLr3HUXbto57jcUPQih54g3zKVte77MuYoHameTLmHhErdb4kIT9EOGOsO_hrvQoW2R6GEyl_eYccW5Qf7rP0LfZ3Yx';
 
 // The base URL for the Yelp API with CORS Anywhere proxy
 // You need to request temporary access at https://cors-anywhere.herokuapp.com/corsdemo

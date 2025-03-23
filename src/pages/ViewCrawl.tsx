@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { Restaurant } from '../types/Restaurant';
+import { GOOGLE_MAPS_API_KEY } from '../constants/keys';
+import GoogleMapFixedSize from '../components/GoogleMapFixedSize';
 
 const ViewCrawlContainer = styled.div`
   max-width: 1200px;
@@ -219,6 +221,35 @@ const ModeButton = styled.button<{ $active: boolean }>`
 
 const libraries = ['places'];
 
+const MapWithDirections: React.FC<{venues: Restaurant[], directions: google.maps.DirectionsResult | null}> = ({
+  venues,
+  directions
+}) => {
+  // Format venues for GoogleMapFixedSize
+  return (
+    <div style={{ height: '500px', width: '100%', position: 'relative' }}>
+      <GoogleMapFixedSize 
+        results={venues}
+        selectedVenues={venues}
+      />
+      
+      {/* Display route directions */}
+      {directions && (
+        <DirectionsRenderer
+          directions={directions}
+          options={{
+            suppressMarkers: true,
+            polylineOptions: {
+              strokeColor: '#FF6B6B',
+              strokeWeight: 5
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
 const ViewCrawl: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -239,10 +270,9 @@ const ViewCrawl: React.FC = () => {
   // Initialize Google Maps
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: 'AIzaSyBc9QpzD9N-5OITbvA3pjT_iVoBjzVb8gQ',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries: libraries as any,
-    version: "weekly",
-    language: "en"
+    version: "weekly"
   });
   
   // Load selected venues from sessionStorage
@@ -583,44 +613,10 @@ const ViewCrawl: React.FC = () => {
           </ApiWarning>
           
           {isLoaded ? (
-            <GoogleMap
-              mapContainerStyle={{
-                width: '100%',
-                height: '100%',
-                minHeight: '500px'
-              }}
-              center={crawlData.venues.length > 0 ? {
-                lat: crawlData.venues[0].coordinates.latitude,
-                lng: crawlData.venues[0].coordinates.longitude
-              } : { lat: 37.7749, lng: -122.4194 }}
-              zoom={13}
-            >
-              {/* Display markers for each venue */}
-              {crawlData.venues.map((venue, index) => (
-                <Marker
-                  key={venue.id}
-                  position={{
-                    lat: venue.coordinates.latitude,
-                    lng: venue.coordinates.longitude
-                  }}
-                  label={(index + 1).toString()}
-                />
-              ))}
-              
-              {/* Display route directions */}
-              {directions && (
-                <DirectionsRenderer
-                  directions={directions}
-                  options={{
-                    suppressMarkers: true,
-                    polylineOptions: {
-                      strokeColor: '#FF6B6B',
-                      strokeWeight: 5
-                    }
-                  }}
-                />
-              )}
-            </GoogleMap>
+            <MapWithDirections 
+              venues={crawlData.venues}
+              directions={directions}
+            />
           ) : (
             <div style={{ padding: '2rem', textAlign: 'center' }}>
               <p>Loading map...</p>
