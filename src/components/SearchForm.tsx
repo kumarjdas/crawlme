@@ -110,8 +110,8 @@ const SubmitButton = styled.button`
 const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading, initialValues }) => {
   const [foodCategory, setFoodCategory] = useState('');
   const [location, setLocation] = useState('');
-  const [radius, setRadius] = useState(1);
-  const [priceFilter, setPriceFilter] = useState<string[]>([]);
+  const [radius, setRadius] = useState(10);
+  const [priceFilter, setPriceFilter] = useState<string[]>(['$', '$$']);
   
   // Initialize form with saved values if provided
   useEffect(() => {

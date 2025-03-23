@@ -154,8 +154,12 @@ const ResultsList: React.FC<ResultsListProps> = ({
       return b.rating - a.rating;
     } else if (sortBy === 'price') {
       return a.price.length - b.price.length;
+    } else if (sortBy === 'distance') {
+      // Sort by distance if available, otherwise keep original order
+      const distanceA = a.distance || 99999;
+      const distanceB = b.distance || 99999;
+      return distanceA - distanceB;
     }
-    // For distance, we'd need actual distance data
     return 0;
   });
   
@@ -211,6 +215,11 @@ const ResultsList: React.FC<ResultsListProps> = ({
                   <ResultDetail>
                     <span>{restaurant.categories.join(', ')}</span>
                   </ResultDetail>
+                  {restaurant.distance && (
+                    <ResultDetail>
+                      <span>📍 {restaurant.distance} mi</span>
+                    </ResultDetail>
+                  )}
                 </ResultDetails>
                 
                 <ResultAddress>{restaurant.address}</ResultAddress>

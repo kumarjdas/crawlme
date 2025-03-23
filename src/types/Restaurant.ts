@@ -16,4 +16,5 @@ export interface Restaurant {
   }[];
   phone?: string;
   url?: string;
+  distance?: number;
 } 

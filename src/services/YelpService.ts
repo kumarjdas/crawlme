@@ -45,6 +45,7 @@ export interface YelpBusinessResponse {
   };
   display_phone: string;
   url: string;
+  distance?: number;
 }
 
 export interface YelpSearchResponse {
@@ -70,7 +71,9 @@ const mapYelpBusinessToRestaurant = (business: YelpBusinessResponse): Restaurant
     categories: business.categories.map(category => category.title),
     coordinates: business.coordinates,
     phone: business.display_phone,
-    url: business.url
+    url: business.url,
+    // Convert meters to miles if distance is provided by Yelp API
+    distance: business.distance ? +(business.distance / 1609.34).toFixed(1) : undefined
   };
 };
 
@@ -164,6 +167,11 @@ const getMockRestaurants = (params?: SearchParams): Restaurant[] => {
   const locationName = params?.location || 'San Francisco, CA';
   const category = params?.foodCategory || 'Food';
   
+  // Generate random distances for the mock restaurants
+  const generateDistance = (min: number, max: number): number => {
+    return +(min + Math.random() * (max - min)).toFixed(1);
+  };
+  
   // Return more tailored mock data based on search parameters
   return [
     {
@@ -174,7 +182,8 @@ const getMockRestaurants = (params?: SearchParams): Restaurant[] => {
       imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500',
       address: `123 Main St, ${locationName}`,
       categories: [category, 'American'],
-      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+      coordinates: { latitude: 37.7749, longitude: -122.4194 },
+      distance: generateDistance(0.2, 1.5)
     },
     {
       id: '2',
@@ -184,7 +193,8 @@ const getMockRestaurants = (params?: SearchParams): Restaurant[] => {
       imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500',
       address: `456 Elm St, ${locationName}`,
       categories: [category, 'Fusion'],
-      coordinates: { latitude: 37.7850, longitude: -122.4100 }
+      coordinates: { latitude: 37.7850, longitude: -122.4100 },
+      distance: generateDistance(0.5, 2)
     },
     {
       id: '3',
@@ -194,7 +204,8 @@ const getMockRestaurants = (params?: SearchParams): Restaurant[] => {
       imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500',
       address: `789 Oak St, ${locationName}`,
       categories: [category, 'Gourmet'],
-      coordinates: { latitude: 37.7950, longitude: -122.4300 }
+      coordinates: { latitude: 37.7950, longitude: -122.4300 },
+      distance: generateDistance(0.8, 3)
     },
     {
       id: '4',
@@ -204,7 +215,8 @@ const getMockRestaurants = (params?: SearchParams): Restaurant[] => {
       imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500',
       address: `101 Pine St, ${locationName}`,
       categories: [category, 'Fine Dining'],
-      coordinates: { latitude: 37.7920, longitude: -122.4080 }
+      coordinates: { latitude: 37.7920, longitude: -122.4080 },
+      distance: generateDistance(1, 4)
     },
     {
       id: '5',
@@ -214,7 +226,8 @@ const getMockRestaurants = (params?: SearchParams): Restaurant[] => {
       imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500',
       address: `202 Market St, ${locationName}`,
       categories: [category, 'Fast Casual'],
-      coordinates: { latitude: 37.7890, longitude: -122.4150 }
+      coordinates: { latitude: 37.7890, longitude: -122.4150 },
+      distance: generateDistance(1.2, 5)
     }
   ];
 }; 
