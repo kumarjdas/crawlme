@@ -463,8 +463,61 @@ const ViewCrawl: React.FC = () => {
     }
   }, [loadError]);
   
+  // Add a function to create Google Maps directions URL
+  const createGoogleMapsUrl = (startPoint: google.maps.LatLng | null, venues: Restaurant[], mode: string): string => {
+    if (!startPoint || venues.length === 0) return '';
+    
+    // Format the origin (start point)
+    const origin = `${startPoint.lat()},${startPoint.lng()}`;
+    
+    // Format the destination (same as origin to make it a round trip)
+    const destination = origin;
+    
+    // Format waypoints
+    const waypoints = venues.map(venue => 
+      `${venue.coordinates.latitude},${venue.coordinates.longitude}`
+    ).join('|');
+    
+    // Convert our travel mode to Google Maps format
+    const travelMode = mode.toLowerCase();
+    
+    // Build the URL
+    return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=${travelMode}`;
+  };
+
+  // Improve the back button to explicitly preserve state
   const handleBackClick = () => {
-    navigate('/plan');
+    // Make sure we don't clear the state in sessionStorage
+    // This ensures that when we navigate back, all data is still available
+    // PlanCrawl will load the data from sessionStorage on mount
+    navigate('/plan', { state: { preserveState: true } });
+  };
+
+  // Add handlers for the buttons
+  const handleShareCrawl = () => {
+    const googleMapsUrl = createGoogleMapsUrl(geocodedLocation, crawlData.venues, travelMode);
+    
+    // Try to use the Web Share API if available
+    if (navigator.share) {
+      navigator.share({
+        title: 'My Food Crawl',
+        text: `Check out this food crawl with ${crawlData.venues.length} stops!`,
+        url: googleMapsUrl
+      }).catch(error => console.log('Error sharing:', error));
+    } else {
+      // Fallback to copying to clipboard
+      navigator.clipboard.writeText(googleMapsUrl)
+        .then(() => alert('Directions link copied to clipboard!'))
+        .catch(() => {
+          // If clipboard access fails, show the URL in an alert
+          alert(`Copy this link to share your food crawl:\n${googleMapsUrl}`);
+        });
+    }
+  };
+
+  const handleShowInGoogleMaps = () => {
+    const googleMapsUrl = createGoogleMapsUrl(geocodedLocation, crawlData.venues, travelMode);
+    window.open(googleMapsUrl, '_blank');
   };
   
   const handleTravelModeChange = (mode: string) => {
@@ -570,8 +623,12 @@ const ViewCrawl: React.FC = () => {
           </CrawlInfo>
           
           <ButtonGroup>
-            <PrimaryButton>Share Crawl</PrimaryButton>
-            <SecondaryButton>Export PDF</SecondaryButton>
+            <PrimaryButton onClick={handleShareCrawl}>
+              Share Crawl
+            </PrimaryButton>
+            <SecondaryButton onClick={handleShowInGoogleMaps}>
+              Show in Google Maps
+            </SecondaryButton>
             <OutlineButton>Add to Calendar</OutlineButton>
           </ButtonGroup>
         </InfoPanel>

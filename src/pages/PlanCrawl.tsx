@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import SearchForm from '../components/SearchForm';
 import ResultsList from '../components/ResultsList';
 import MapView from '../components/MapView';
@@ -97,6 +97,7 @@ const GenerateRouteButton = styled.button`
 
 const PlanCrawl: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [view, setView] = useState<'list' | 'map'>('list');
   const [searchResults, setSearchResults] = useState<Restaurant[]>([]);
   const [selectedVenues, setSelectedVenues] = useState<Restaurant[]>([]);
@@ -125,7 +126,15 @@ const PlanCrawl: React.FC = () => {
     if (savedView && (savedView === 'list' || savedView === 'map')) {
       setView(savedView as 'list' | 'map');
     }
-  }, []);
+    
+    // Log state preservation information
+    console.log('PlanCrawl: Loading state from sessionStorage', {
+      hasResults: !!savedResults,
+      hasVenues: !!savedVenues,
+      hasParams: !!savedParams,
+      preserveStateFromRoute: location.state?.preserveState
+    });
+  }, [location]);
   
   // Save state to sessionStorage whenever it changes
   useEffect(() => {
