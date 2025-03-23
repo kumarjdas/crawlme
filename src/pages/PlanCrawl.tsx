@@ -143,6 +143,9 @@ const PlanCrawl: React.FC = () => {
     setSearchParams(params);
     
     try {
+      // Save the search location for route planning
+      sessionStorage.setItem('searchLocation', params.location);
+      
       // Call YelpService to get restaurant data
       const results = await YelpService.searchRestaurants(params);
       setSearchResults(results);

@@ -226,11 +226,14 @@ const ViewCrawl: React.FC = () => {
     venues: Restaurant[];
     totalDistance: string;
     totalDuration: string;
-    transportMode: 'WALKING' | 'DRIVING' | 'TRANSIT';
+    transportMode: 'WALKING' | 'DRIVING' | 'TRANSIT' | 'BICYCLING';
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [travelMode, setTravelMode] = useState<string>('WALKING');
+  const [searchLocation, setSearchLocation] = useState<string | null>(null);
+  const [geocodedLocation, setGeocodedLocation] = useState<google.maps.LatLng | null>(null);
+  const [legInfo, setLegInfo] = useState<{distance: string, duration: string}[]>([]);
   
   // Initialize Google Maps
   const { isLoaded, loadError } = useJsApiLoader({
@@ -245,6 +248,10 @@ const ViewCrawl: React.FC = () => {
       setIsLoading(true);
       
       try {
+        // Get search location
+        const location = sessionStorage.getItem('searchLocation');
+        setSearchLocation(location);
+        
         // For a new crawl, get venues from sessionStorage
         if (id === 'new') {
           const storedVenues = sessionStorage.getItem('selectedVenues');
@@ -318,15 +325,37 @@ const ViewCrawl: React.FC = () => {
     fetchCrawl();
   }, [id, navigate]);
   
+  // Geocode the search location when it's loaded and Maps API is ready
+  useEffect(() => {
+    if (!isLoaded || !searchLocation) return;
+    
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: searchLocation }, (results, status) => {
+      if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+        const location = results[0].geometry.location;
+        setGeocodedLocation(location);
+      } else {
+        console.error('Geocoding failed:', status);
+      }
+    });
+  }, [isLoaded, searchLocation]);
+  
   // Calculate directions when venues or travel mode changes
   useEffect(() => {
-    if (!isLoaded || !crawlData?.venues || crawlData.venues.length < 2) return;
+    if (!isLoaded || !crawlData?.venues || crawlData.venues.length < 1) return;
     
     try {
       const directionsService = new google.maps.DirectionsService();
       
-      // Create an array of waypoints from venues (excluding first and last)
-      const waypoints = crawlData.venues.slice(1, -1).map(venue => ({
+      // Use geocoded search location as start/end if available, otherwise use first venue
+      const startPoint = geocodedLocation || 
+        new google.maps.LatLng(
+          crawlData.venues[0].coordinates.latitude,
+          crawlData.venues[0].coordinates.longitude
+        );
+      
+      // Create an array of waypoints from all venues
+      const waypoints = crawlData.venues.map(venue => ({
         location: new google.maps.LatLng(
           venue.coordinates.latitude,
           venue.coordinates.longitude
@@ -334,28 +363,18 @@ const ViewCrawl: React.FC = () => {
         stopover: true
       }));
       
-      // Use first venue as origin and last venue as destination
-      const origin = new google.maps.LatLng(
-        crawlData.venues[0].coordinates.latitude,
-        crawlData.venues[0].coordinates.longitude
-      );
-      
-      const destination = new google.maps.LatLng(
-        crawlData.venues[crawlData.venues.length - 1].coordinates.latitude,
-        crawlData.venues[crawlData.venues.length - 1].coordinates.longitude
-      );
-      
       // Convert string travel mode to Google Maps TravelMode
       const googleTravelMode = 
         travelMode === 'WALKING' ? google.maps.TravelMode.WALKING :
         travelMode === 'DRIVING' ? google.maps.TravelMode.DRIVING :
+        travelMode === 'BICYCLING' ? google.maps.TravelMode.BICYCLING :
         google.maps.TravelMode.TRANSIT;
       
       directionsService.route(
         {
-          origin,
-          destination,
-          waypoints,
+          origin: startPoint,
+          destination: startPoint, // End at the same place we started
+          waypoints: waypoints,
           travelMode: googleTravelMode,
           optimizeWaypoints: true
         },
@@ -366,15 +385,12 @@ const ViewCrawl: React.FC = () => {
             // If route was optimized, reorder venues to match optimized waypoint order
             if (result?.routes[0]?.waypoint_order && result.routes[0].waypoint_order.length > 0) {
               // Create a new array of venues in the optimized order
-              const optimizedVenues = [crawlData.venues[0]]; // Start with first venue
+              const optimizedVenues: Restaurant[] = [];
               
-              // Add middle venues in optimized order
+              // Add venues in optimized order
               result.routes[0].waypoint_order.forEach(waypointIndex => {
-                optimizedVenues.push(crawlData.venues[waypointIndex + 1]);
+                optimizedVenues.push(crawlData.venues[waypointIndex]);
               });
-              
-              // Add last venue
-              optimizedVenues.push(crawlData.venues[crawlData.venues.length - 1]);
               
               // Update the crawl data with optimized venue order
               setCrawlData(prev => {
@@ -386,15 +402,27 @@ const ViewCrawl: React.FC = () => {
               });
             }
             
-            // Calculate total distance and duration
+            // Calculate total distance and duration and store leg info
             if (result?.routes[0]?.legs) {
               let totalDistance = 0;
               let totalDuration = 0;
               
-              result.routes[0].legs.forEach((leg) => {
+              const legs = result.routes[0].legs;
+              const legInfoArray: {distance: string, duration: string}[] = [];
+              
+              legs.forEach((leg) => {
                 totalDistance += leg.distance?.value || 0;
                 totalDuration += leg.duration?.value || 0;
+                
+                if (leg.distance && leg.duration) {
+                  legInfoArray.push({
+                    distance: leg.distance.text,
+                    duration: leg.duration.text
+                  });
+                }
               });
+              
+              setLegInfo(legInfoArray);
               
               // Convert meters to miles
               const distanceInMiles = (totalDistance / 1609).toFixed(1);
@@ -425,7 +453,7 @@ const ViewCrawl: React.FC = () => {
     } catch (error) {
       console.error('Error setting up directions:', error);
     }
-  }, [isLoaded, crawlData?.venues, travelMode]);
+  }, [isLoaded, crawlData?.venues, travelMode, geocodedLocation]);
   
   const handleBackClick = () => {
     navigate('/plan');
@@ -490,6 +518,12 @@ const ViewCrawl: React.FC = () => {
                 🚶‍♂️ Walking
               </ModeButton>
               <ModeButton 
+                $active={travelMode === 'BICYCLING'}
+                onClick={() => handleTravelModeChange('BICYCLING')}
+              >
+                🚲 Biking
+              </ModeButton>
+              <ModeButton 
                 $active={travelMode === 'DRIVING'}
                 onClick={() => handleTravelModeChange('DRIVING')}
               >
@@ -506,10 +540,10 @@ const ViewCrawl: React.FC = () => {
             <VenueList>
               {crawlData.venues.map((venue, index) => (
                 <React.Fragment key={venue.id}>
-                  {index > 0 && (
+                  {index > 0 && legInfo[index - 1] && (
                     <TravelInfo>
-                      <span>{travelMode === 'WALKING' ? '🚶‍♂️' : travelMode === 'DRIVING' ? '🚗' : '🚆'}</span>
-                      <span>15 min {travelMode.toLowerCase()} (0.7 miles)</span>
+                      <span>{travelMode === 'WALKING' ? '🚶‍♂️' : travelMode === 'DRIVING' ? '🚗' : travelMode === 'BICYCLING' ? '🚲' : '🚆'}</span>
+                      <span>{legInfo[index - 1].duration} ({legInfo[index - 1].distance})</span>
                     </TravelInfo>
                   )}
                   <VenueItem>
@@ -530,20 +564,7 @@ const ViewCrawl: React.FC = () => {
           <ButtonGroup>
             <PrimaryButton>Share Crawl</PrimaryButton>
             <SecondaryButton>Export PDF</SecondaryButton>
-            <OutlineButton 
-              onClick={() => {
-                // Shuffle venue order before generating route
-                if (crawlData) {
-                  const shuffledVenues = [...crawlData.venues].sort(() => Math.random() - 0.5);
-                  setCrawlData({
-                    ...crawlData,
-                    venues: shuffledVenues
-                  });
-                }
-              }}
-            >
-              Reorder Venues
-            </OutlineButton>
+            <OutlineButton>Add to Calendar</OutlineButton>
           </ButtonGroup>
         </InfoPanel>
         
