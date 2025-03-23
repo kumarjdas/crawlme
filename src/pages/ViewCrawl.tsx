@@ -39,6 +39,23 @@ const MapContainer = styled.div`
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
   min-height: 400px;
+  position: relative;
+`;
+
+const ApiWarning = styled.div`
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  
+  a {
+    color: #856404;
+    text-decoration: underline;
+  }
 `;
 
 const CrawlInfo = styled.div`
@@ -305,77 +322,109 @@ const ViewCrawl: React.FC = () => {
   useEffect(() => {
     if (!isLoaded || !crawlData?.venues || crawlData.venues.length < 2) return;
     
-    const directionsService = new google.maps.DirectionsService();
-    
-    // Create an array of waypoints from venues (excluding first and last)
-    const waypoints = crawlData.venues.slice(1, -1).map(venue => ({
-      location: new google.maps.LatLng(
-        venue.coordinates.latitude,
-        venue.coordinates.longitude
-      ),
-      stopover: true
-    }));
-    
-    // Use first venue as origin and last venue as destination
-    const origin = new google.maps.LatLng(
-      crawlData.venues[0].coordinates.latitude,
-      crawlData.venues[0].coordinates.longitude
-    );
-    
-    const destination = new google.maps.LatLng(
-      crawlData.venues[crawlData.venues.length - 1].coordinates.latitude,
-      crawlData.venues[crawlData.venues.length - 1].coordinates.longitude
-    );
-    
-    // Convert string travel mode to Google Maps TravelMode
-    const googleTravelMode = 
-      travelMode === 'WALKING' ? google.maps.TravelMode.WALKING :
-      travelMode === 'DRIVING' ? google.maps.TravelMode.DRIVING :
-      google.maps.TravelMode.TRANSIT;
-    
-    directionsService.route(
-      {
-        origin,
-        destination,
-        waypoints,
-        travelMode: googleTravelMode,
-        optimizeWaypoints: true
-      },
-      (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK) {
-          setDirections(result);
-          
-          // Calculate total distance and duration
-          if (result?.routes[0]?.legs) {
-            let totalDistance = 0;
-            let totalDuration = 0;
+    try {
+      const directionsService = new google.maps.DirectionsService();
+      
+      // Create an array of waypoints from venues (excluding first and last)
+      const waypoints = crawlData.venues.slice(1, -1).map(venue => ({
+        location: new google.maps.LatLng(
+          venue.coordinates.latitude,
+          venue.coordinates.longitude
+        ),
+        stopover: true
+      }));
+      
+      // Use first venue as origin and last venue as destination
+      const origin = new google.maps.LatLng(
+        crawlData.venues[0].coordinates.latitude,
+        crawlData.venues[0].coordinates.longitude
+      );
+      
+      const destination = new google.maps.LatLng(
+        crawlData.venues[crawlData.venues.length - 1].coordinates.latitude,
+        crawlData.venues[crawlData.venues.length - 1].coordinates.longitude
+      );
+      
+      // Convert string travel mode to Google Maps TravelMode
+      const googleTravelMode = 
+        travelMode === 'WALKING' ? google.maps.TravelMode.WALKING :
+        travelMode === 'DRIVING' ? google.maps.TravelMode.DRIVING :
+        google.maps.TravelMode.TRANSIT;
+      
+      directionsService.route(
+        {
+          origin,
+          destination,
+          waypoints,
+          travelMode: googleTravelMode,
+          optimizeWaypoints: true
+        },
+        (result, status) => {
+          if (status === google.maps.DirectionsStatus.OK) {
+            setDirections(result);
             
-            result.routes[0].legs.forEach((leg) => {
-              totalDistance += leg.distance?.value || 0;
-              totalDuration += leg.duration?.value || 0;
-            });
+            // If route was optimized, reorder venues to match optimized waypoint order
+            if (result?.routes[0]?.waypoint_order && result.routes[0].waypoint_order.length > 0) {
+              // Create a new array of venues in the optimized order
+              const optimizedVenues = [crawlData.venues[0]]; // Start with first venue
+              
+              // Add middle venues in optimized order
+              result.routes[0].waypoint_order.forEach(waypointIndex => {
+                optimizedVenues.push(crawlData.venues[waypointIndex + 1]);
+              });
+              
+              // Add last venue
+              optimizedVenues.push(crawlData.venues[crawlData.venues.length - 1]);
+              
+              // Update the crawl data with optimized venue order
+              setCrawlData(prev => {
+                if (!prev) return null;
+                return {
+                  ...prev,
+                  venues: optimizedVenues
+                };
+              });
+            }
             
-            // Convert meters to miles
-            const distanceInMiles = (totalDistance / 1609).toFixed(1);
-            
-            // Convert seconds to hours and minutes
-            const hours = Math.floor(totalDuration / 3600);
-            const minutes = Math.floor((totalDuration % 3600) / 60);
-            const durationString = hours > 0 
-              ? `${hours} hour${hours > 1 ? 's' : ''} ${minutes} minute${minutes > 1 ? 's' : ''}`
-              : `${minutes} minute${minutes > 1 ? 's' : ''}`;
-            
-            setCrawlData({
-              ...crawlData,
-              totalDistance: `${distanceInMiles} miles`,
-              totalDuration: durationString
-            });
+            // Calculate total distance and duration
+            if (result?.routes[0]?.legs) {
+              let totalDistance = 0;
+              let totalDuration = 0;
+              
+              result.routes[0].legs.forEach((leg) => {
+                totalDistance += leg.distance?.value || 0;
+                totalDuration += leg.duration?.value || 0;
+              });
+              
+              // Convert meters to miles
+              const distanceInMiles = (totalDistance / 1609).toFixed(1);
+              
+              // Convert seconds to hours and minutes
+              const hours = Math.floor(totalDuration / 3600);
+              const minutes = Math.floor((totalDuration % 3600) / 60);
+              const durationString = hours > 0 
+                ? `${hours} hour${hours > 1 ? 's' : ''} ${minutes} minute${minutes > 1 ? 's' : ''}`
+                : `${minutes} minute${minutes > 1 ? 's' : ''}`;
+              
+              setCrawlData(prev => {
+                if (!prev) return null;
+                return {
+                  ...prev,
+                  totalDistance: `${distanceInMiles} miles`,
+                  totalDuration: durationString
+                };
+              });
+            }
+          } else {
+            console.error(`Directions request failed: ${status}`);
+            // Show error message explaining the required API
+            alert(`Error with Google Maps Directions: ${status}.\n\nMake sure you have enabled the "Directions API" in your Google Cloud Console. The "Routes API" is different and won't work for this feature.`);
           }
-        } else {
-          console.error(`Directions request failed: ${status}`);
         }
-      }
-    );
+      );
+    } catch (error) {
+      console.error('Error setting up directions:', error);
+    }
   }, [isLoaded, crawlData?.venues, travelMode]);
   
   const handleBackClick = () => {
@@ -499,6 +548,14 @@ const ViewCrawl: React.FC = () => {
         </InfoPanel>
         
         <MapContainer>
+          <ApiWarning>
+            <span>⚠️</span>
+            <div>
+              <strong>Google Maps API Notice:</strong> For route planning to work correctly, you need to enable the "Directions API" (not just Routes API) in your Google Cloud Console. 
+              <a href="https://console.cloud.google.com/apis/library/directions-backend.googleapis.com" target="_blank" rel="noopener noreferrer"> Click here to enable it</a>.
+            </div>
+          </ApiWarning>
+          
           {isLoaded ? (
             <GoogleMap
               mapContainerStyle={{

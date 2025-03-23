@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-
-interface SearchFormProps {
-  onSearch: (params: SearchParams) => void;
-  isLoading: boolean;
-}
 
 export interface SearchParams {
   foodCategory: string;
   location: string;
   radius: number;
-  priceLevel: string[];
-  ratingThreshold: number;
+  priceFilter: string[];
+}
+
+interface SearchFormProps {
+  onSearch: (params: SearchParams) => void;
+  isLoading: boolean;
+  initialValues?: SearchParams;
 }
 
 const FormContainer = styled.div`
@@ -107,18 +107,27 @@ const SubmitButton = styled.button`
   }
 `;
 
-const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading }) => {
+const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading, initialValues }) => {
   const [foodCategory, setFoodCategory] = useState('');
   const [location, setLocation] = useState('');
-  const [radius, setRadius] = useState(2);
-  const [priceLevel, setPriceLevel] = useState<string[]>(['$', '$$', '$$$', '$$$$']);
-  const [ratingThreshold, setRatingThreshold] = useState(3);
+  const [radius, setRadius] = useState(1);
+  const [priceFilter, setPriceFilter] = useState<string[]>([]);
+  
+  // Initialize form with saved values if provided
+  useEffect(() => {
+    if (initialValues) {
+      setFoodCategory(initialValues.foodCategory);
+      setLocation(initialValues.location);
+      setRadius(initialValues.radius);
+      setPriceFilter(initialValues.priceFilter);
+    }
+  }, [initialValues]);
   
   const handlePriceToggle = (price: string) => {
-    if (priceLevel.includes(price)) {
-      setPriceLevel(priceLevel.filter(p => p !== price));
+    if (priceFilter.includes(price)) {
+      setPriceFilter(priceFilter.filter(p => p !== price));
     } else {
-      setPriceLevel([...priceLevel, price]);
+      setPriceFilter([...priceFilter, price]);
     }
   };
   
@@ -129,8 +138,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading }) => {
       foodCategory,
       location,
       radius,
-      priceLevel,
-      ratingThreshold
+      priceFilter,
     });
   };
   
@@ -188,7 +196,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading }) => {
             <CheckboxLabel>
               <Checkbox
                 type="checkbox"
-                checked={priceLevel.includes('$')}
+                checked={priceFilter.includes('$')}
                 onChange={() => handlePriceToggle('$')}
               />
               $
@@ -196,7 +204,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading }) => {
             <CheckboxLabel>
               <Checkbox
                 type="checkbox"
-                checked={priceLevel.includes('$$')}
+                checked={priceFilter.includes('$$')}
                 onChange={() => handlePriceToggle('$$')}
               />
               $$
@@ -204,7 +212,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading }) => {
             <CheckboxLabel>
               <Checkbox
                 type="checkbox"
-                checked={priceLevel.includes('$$$')}
+                checked={priceFilter.includes('$$$')}
                 onChange={() => handlePriceToggle('$$$')}
               />
               $$$
@@ -212,31 +220,12 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading }) => {
             <CheckboxLabel>
               <Checkbox
                 type="checkbox"
-                checked={priceLevel.includes('$$$$')}
+                checked={priceFilter.includes('$$$$')}
                 onChange={() => handlePriceToggle('$$$$')}
               />
               $$$$
             </CheckboxLabel>
           </CheckboxGroup>
-        </FormGroup>
-        
-        <FormGroup>
-          <Label htmlFor="rating">Minimum Rating: {ratingThreshold}⭐</Label>
-          <SliderContainer>
-            <SliderValue>
-              <span>1⭐</span>
-              <span>5⭐</span>
-            </SliderValue>
-            <Slider
-              type="range"
-              id="rating"
-              min={1}
-              max={5}
-              step={0.5}
-              value={ratingThreshold}
-              onChange={(e) => setRatingThreshold(parseFloat(e.target.value))}
-            />
-          </SliderContainer>
         </FormGroup>
         
         <SubmitButton type="submit" disabled={isLoading}>

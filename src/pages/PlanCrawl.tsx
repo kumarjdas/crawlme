@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import SearchForm from '../components/SearchForm';
@@ -101,13 +101,50 @@ const PlanCrawl: React.FC = () => {
   const [searchResults, setSearchResults] = useState<Restaurant[]>([]);
   const [selectedVenues, setSelectedVenues] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchParams, setSearchParams] = useState<SearchParams | null>(null);
   
-  const handleSearch = async (searchParams: SearchParams) => {
+  // Load saved state from sessionStorage when component mounts
+  useEffect(() => {
+    const savedResults = sessionStorage.getItem('searchResults');
+    const savedVenues = sessionStorage.getItem('selectedVenues');
+    const savedParams = sessionStorage.getItem('searchParams');
+    const savedView = sessionStorage.getItem('mapListView');
+    
+    if (savedResults) {
+      setSearchResults(JSON.parse(savedResults));
+    }
+    
+    if (savedVenues) {
+      setSelectedVenues(JSON.parse(savedVenues));
+    }
+    
+    if (savedParams) {
+      setSearchParams(JSON.parse(savedParams));
+    }
+    
+    if (savedView && (savedView === 'list' || savedView === 'map')) {
+      setView(savedView as 'list' | 'map');
+    }
+  }, []);
+  
+  // Save state to sessionStorage whenever it changes
+  useEffect(() => {
+    sessionStorage.setItem('searchResults', JSON.stringify(searchResults));
+    sessionStorage.setItem('selectedVenues', JSON.stringify(selectedVenues));
+    sessionStorage.setItem('mapListView', view);
+    
+    if (searchParams) {
+      sessionStorage.setItem('searchParams', JSON.stringify(searchParams));
+    }
+  }, [searchResults, selectedVenues, view, searchParams]);
+  
+  const handleSearch = async (params: SearchParams) => {
     setIsLoading(true);
+    setSearchParams(params);
     
     try {
       // Call YelpService to get restaurant data
-      const results = await YelpService.searchRestaurants(searchParams);
+      const results = await YelpService.searchRestaurants(params);
       setSearchResults(results);
     } catch (error) {
       console.error('Error searching for restaurants:', error);
@@ -137,7 +174,11 @@ const PlanCrawl: React.FC = () => {
       
       <ContentGrid>
         <LeftColumn>
-          <SearchForm onSearch={handleSearch} isLoading={isLoading} />
+          <SearchForm 
+            onSearch={handleSearch} 
+            isLoading={isLoading}
+            initialValues={searchParams || undefined}
+          />
           
           {selectedVenues.length > 0 && (
             <>
