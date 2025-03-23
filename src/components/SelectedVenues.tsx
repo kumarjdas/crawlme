@@ -91,29 +91,16 @@ const RemoveButton = styled.button`
   }
 `;
 
-const OptimizeButton = styled(Link)`
-  display: block;
-  width: 100%;
-  padding: 0.75rem;
-  background-color: ${props => props.theme.colors.secondary};
-  color: white;
-  border: none;
-  border-radius: 4px;
-  text-align: center;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  
-  &:hover {
-    background-color: #40b4ac;
-  }
-`;
-
 const EmptyState = styled.div`
   text-align: center;
   color: #666;
   padding: 1rem 0;
+`;
+
+const AddAllButton = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
 `;
 
 const SelectedVenues: React.FC<SelectedVenuesProps> = ({ venues, onRemoveVenue }) => {
@@ -149,10 +136,6 @@ const SelectedVenues: React.FC<SelectedVenuesProps> = ({ venues, onRemoveVenue }
           </VenueItem>
         ))}
       </VenueList>
-      
-      <OptimizeButton to={`/crawl/${crawlId}`}>
-        Optimize Route
-      </OptimizeButton>
     </Container>
   );
 };

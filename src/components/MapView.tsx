@@ -63,7 +63,7 @@ const mapContainerStyle = {
   height: '100%'
 };
 
-// Google Maps API libraries to load
+// Import necessary Google Maps components with valid libraries
 const libraries = ['places'];
 
 const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSelection }) => {

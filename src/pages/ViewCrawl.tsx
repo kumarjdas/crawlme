@@ -217,7 +217,7 @@ const ModeButton = styled.button<{ $active: boolean }>`
   }
 `;
 
-const libraries = ['places', 'directions'];
+const libraries = ['places'];
 
 const ViewCrawl: React.FC = () => {
   const { id } = useParams<{ id: string }>();

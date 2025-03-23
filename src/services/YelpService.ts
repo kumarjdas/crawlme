@@ -133,10 +133,18 @@ export const YelpService = {
       
       console.log(`Received ${response.data.businesses.length} results from Yelp`);
       
-      // No longer filtering by rating threshold since it's not in the SearchParams
-      const businesses = response.data.businesses;
+      // Filter results that are within the specified radius
+      // Convert from meters to miles for filtering
+      const businesses = response.data.businesses.filter(business => {
+        // If distance is missing, include the result
+        if (!business.distance) return true;
+        
+        // Convert meters to miles and check if it's within radius
+        const distanceInMiles = business.distance / 1609.34;
+        return distanceInMiles <= radius;
+      });
       
-      console.log(`Returning ${businesses.length} results`);
+      console.log(`Returning ${businesses.length} results after filtering by distance (${radius} miles)`);
       
       // Map to our Restaurant type
       return businesses.map(mapYelpBusinessToRestaurant);
