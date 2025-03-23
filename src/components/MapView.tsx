@@ -74,16 +74,18 @@ const MapView: React.FC<MapViewProps> = ({ results, selectedVenues, onToggleSele
   // Use the provided API key
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: 'AIzaSyAvnVdLIoAMMSzLU1DFxuMsv-WkiVQo-DE',
+    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'AIzaSyAvnVdLIoAMMSzLU1DFxuMsv-WkiVQo-DE',
     libraries: libraries as any,
-    version: "weekly"
+    version: "weekly",
+    language: "en"
   });
   
   // Handle Google Maps API loading error
   useEffect(() => {
     if (loadError) {
       console.error('Google Maps loading error:', loadError);
-      setMapError('Failed to load Google Maps. Please check your API key and configuration.');
+      console.log('Using API key:', process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? 'From .env file' : 'Fallback key');
+      setMapError(`Failed to load Google Maps: ${loadError.message}. Please check your API key and configuration.`);
     }
   }, [loadError]);
   

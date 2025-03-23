@@ -234,13 +234,15 @@ const ViewCrawl: React.FC = () => {
   const [searchLocation, setSearchLocation] = useState<string | null>(null);
   const [geocodedLocation, setGeocodedLocation] = useState<google.maps.LatLng | null>(null);
   const [legInfo, setLegInfo] = useState<{distance: string, duration: string}[]>([]);
+  const [mapError, setMapError] = useState<string | null>(null);
   
   // Initialize Google Maps
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: 'AIzaSyAvnVdLIoAMMSzLU1DFxuMsv-WkiVQo-DE',
+    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'AIzaSyAvnVdLIoAMMSzLU1DFxuMsv-WkiVQo-DE',
     libraries: libraries as any,
-    version: "weekly"
+    version: "weekly",
+    language: "en"
   });
   
   // Load selected venues from sessionStorage
@@ -456,6 +458,14 @@ const ViewCrawl: React.FC = () => {
     }
   }, [isLoaded, crawlData?.venues, travelMode, geocodedLocation]);
   
+  // Add an effect to handle map loading errors
+  useEffect(() => {
+    if (loadError) {
+      console.error('Google Maps loading error:', loadError);
+      setMapError(`Failed to load Google Maps: ${loadError.message || 'Unknown error'}`);
+    }
+  }, [loadError]);
+  
   const handleBackClick = () => {
     navigate('/plan');
   };
@@ -573,14 +583,22 @@ const ViewCrawl: React.FC = () => {
           <ApiWarning>
             <span>⚠️</span>
             <div>
-              <strong>Google Maps API Notice:</strong> For route planning to work correctly, you need to:
+              {mapError ? (
+                <>
+                  <strong>Error Loading Google Maps:</strong> {mapError}
+                  <p>To fix this issue:</p>
+                </>
+              ) : (
+                <strong>Google Maps API Notice:</strong>
+              )}
               <ol>
                 <li>Enable the "Directions API" in your <a href="https://console.cloud.google.com/apis/library/directions-backend.googleapis.com" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></li>
                 <li>Enable the "Maps JavaScript API" in your <a href="https://console.cloud.google.com/apis/library/maps-backend.googleapis.com" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></li>
-                <li>Ensure your API key has no restrictions OR is properly configured to allow your domain</li>
-                <li>Check if billing is enabled on your Google Cloud account (required for Maps API)</li>
+                <li>Make sure your API key has <strong>NO domain restrictions</strong> during development</li>
+                <li>Verify billing is enabled on your Google Cloud account (required for Maps API)</li>
+                <li>Try opening <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google Maps</a> in a new tab to confirm your internet connection</li>
               </ol>
-              <p>If you're seeing "Failed to load Google Maps script" errors, these steps should resolve the issue.</p>
+              <p>After making these changes, refresh this page to try again.</p>
             </div>
           </ApiWarning>
           
@@ -624,7 +642,10 @@ const ViewCrawl: React.FC = () => {
               )}
             </GoogleMap>
           ) : (
-            <p>Loading map...</p>
+            <div style={{ padding: '2rem', textAlign: 'center' }}>
+              <p>Loading map...</p>
+              {mapError && <p style={{ color: 'red' }}>Error: {mapError}</p>}
+            </div>
           )}
         </MapContainer>
       </CrawlGrid>
