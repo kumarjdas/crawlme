@@ -495,6 +495,8 @@ const ViewCrawl: React.FC = () => {
 
   // Add handlers for the buttons
   const handleShareCrawl = () => {
+    if (!crawlData || !geocodedLocation) return;
+    
     const googleMapsUrl = createGoogleMapsUrl(geocodedLocation, crawlData.venues, travelMode);
     
     // Try to use the Web Share API if available
@@ -516,6 +518,8 @@ const ViewCrawl: React.FC = () => {
   };
 
   const handleShowInGoogleMaps = () => {
+    if (!crawlData || !geocodedLocation) return;
+    
     const googleMapsUrl = createGoogleMapsUrl(geocodedLocation, crawlData.venues, travelMode);
     window.open(googleMapsUrl, '_blank');
   };
