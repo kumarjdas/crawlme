@@ -239,7 +239,8 @@ const ViewCrawl: React.FC = () => {
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: 'AIzaSyAvnVdLIoAMMSzLU1DFxuMsv-WkiVQo-DE',
-    libraries: libraries as any
+    libraries: libraries as any,
+    version: "weekly"
   });
   
   // Load selected venues from sessionStorage
@@ -572,8 +573,14 @@ const ViewCrawl: React.FC = () => {
           <ApiWarning>
             <span>⚠️</span>
             <div>
-              <strong>Google Maps API Notice:</strong> For route planning to work correctly, you need to enable the "Directions API" (not just Routes API) in your Google Cloud Console. 
-              <a href="https://console.cloud.google.com/apis/library/directions-backend.googleapis.com" target="_blank" rel="noopener noreferrer"> Click here to enable it</a>.
+              <strong>Google Maps API Notice:</strong> For route planning to work correctly, you need to:
+              <ol>
+                <li>Enable the "Directions API" in your <a href="https://console.cloud.google.com/apis/library/directions-backend.googleapis.com" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></li>
+                <li>Enable the "Maps JavaScript API" in your <a href="https://console.cloud.google.com/apis/library/maps-backend.googleapis.com" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></li>
+                <li>Ensure your API key has no restrictions OR is properly configured to allow your domain</li>
+                <li>Check if billing is enabled on your Google Cloud account (required for Maps API)</li>
+              </ol>
+              <p>If you're seeing "Failed to load Google Maps script" errors, these steps should resolve the issue.</p>
             </div>
           </ApiWarning>
           
