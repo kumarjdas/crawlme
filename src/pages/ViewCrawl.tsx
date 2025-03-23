@@ -490,7 +490,30 @@ const ViewCrawl: React.FC = () => {
     // Make sure we don't clear the state in sessionStorage
     // This ensures that when we navigate back, all data is still available
     // PlanCrawl will load the data from sessionStorage on mount
-    navigate('/plan', { state: { preserveState: true } });
+    
+    // Explicitly set state to be preserved before navigating
+    const searchResultsData = sessionStorage.getItem('searchResults');
+    const selectedVenuesData = sessionStorage.getItem('selectedVenues');
+    const searchParamsData = sessionStorage.getItem('searchParams');
+    
+    if (searchResultsData && selectedVenuesData && searchParamsData) {
+      const searchResults = JSON.parse(searchResultsData);
+      const selectedVenues = JSON.parse(selectedVenuesData);
+      const searchParams = JSON.parse(searchParamsData);
+      
+      // Ensure this state data is also set in location state
+      navigate('/plan', { 
+        state: { 
+          preserveState: true,
+          searchResults,
+          selectedVenues,
+          searchParams
+        } 
+      });
+    } else {
+      // If no data in session storage, just go back with flag
+      navigate('/plan', { state: { preserveState: true } });
+    }
   };
 
   // Add handlers for the buttons

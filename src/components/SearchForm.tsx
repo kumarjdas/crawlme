@@ -176,13 +176,13 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading, initialVal
           <SliderContainer>
             <SliderValue>
               <span>0.5 miles</span>
-              <span>10 miles</span>
+              <span>30 miles</span>
             </SliderValue>
             <Slider
               type="range"
               id="radius"
               min={0.5}
-              max={10}
+              max={30}
               step={0.5}
               value={radius}
               onChange={(e) => setRadius(parseFloat(e.target.value))}

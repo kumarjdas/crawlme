@@ -106,33 +106,55 @@ const PlanCrawl: React.FC = () => {
   
   // Load saved state from sessionStorage when component mounts
   useEffect(() => {
-    const savedResults = sessionStorage.getItem('searchResults');
-    const savedVenues = sessionStorage.getItem('selectedVenues');
-    const savedParams = sessionStorage.getItem('searchParams');
-    const savedView = sessionStorage.getItem('mapListView');
+    // Check if we have state data from navigation first (higher priority)
+    let stateFromNav = false;
     
-    if (savedResults) {
-      setSearchResults(JSON.parse(savedResults));
+    if (location.state && location.state.preserveState) {
+      if (location.state.searchResults) {
+        setSearchResults(location.state.searchResults);
+        stateFromNav = true;
+      }
+      
+      if (location.state.selectedVenues) {
+        setSelectedVenues(location.state.selectedVenues);
+        stateFromNav = true;
+      }
+      
+      if (location.state.searchParams) {
+        setSearchParams(location.state.searchParams);
+        stateFromNav = true;
+      }
     }
     
-    if (savedVenues) {
-      setSelectedVenues(JSON.parse(savedVenues));
-    }
-    
-    if (savedParams) {
-      setSearchParams(JSON.parse(savedParams));
-    }
-    
-    if (savedView && (savedView === 'list' || savedView === 'map')) {
-      setView(savedView as 'list' | 'map');
+    // If we didn't get state from navigation, try session storage
+    if (!stateFromNav) {
+      const savedResults = sessionStorage.getItem('searchResults');
+      const savedVenues = sessionStorage.getItem('selectedVenues');
+      const savedParams = sessionStorage.getItem('searchParams');
+      const savedView = sessionStorage.getItem('mapListView');
+      
+      if (savedResults) {
+        setSearchResults(JSON.parse(savedResults));
+      }
+      
+      if (savedVenues) {
+        setSelectedVenues(JSON.parse(savedVenues));
+      }
+      
+      if (savedParams) {
+        setSearchParams(JSON.parse(savedParams));
+      }
+      
+      if (savedView && (savedView === 'list' || savedView === 'map')) {
+        setView(savedView as 'list' | 'map');
+      }
     }
     
     // Log state preservation information
-    console.log('PlanCrawl: Loading state from sessionStorage', {
-      hasResults: !!savedResults,
-      hasVenues: !!savedVenues,
-      hasParams: !!savedParams,
-      preserveStateFromRoute: location.state?.preserveState
+    console.log('PlanCrawl: Loading state', {
+      fromNavigation: stateFromNav,
+      preserveStateFromRoute: location.state?.preserveState,
+      hasNavState: !!(location.state?.searchResults || location.state?.selectedVenues)
     });
   }, [location]);
   
