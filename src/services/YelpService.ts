@@ -107,13 +107,13 @@ export const YelpService = {
       console.log('Searching for restaurants with params:', params);
       
       // Note: In a production app, these params would be validated and sanitized
-      const { foodCategory, location, radius, priceLevel, ratingThreshold } = params;
+      const { foodCategory, location, radius, priceFilter } = params;
       
       // Convert radius from miles to meters (Yelp API uses meters)
       const radiusInMeters = Math.round(radius * 1609.34);
       
-      // Convert price level array to comma-separated string
-      const priceFilter = priceLevel.map(price => price.length).join(',');
+      // Convert price filter array to comma-separated string for Yelp API
+      const priceString = priceFilter.map((price: string) => price.length).join(',');
       
       console.log(`Making API request to Yelp for ${foodCategory} in ${location}`);
       
@@ -122,7 +122,7 @@ export const YelpService = {
           term: foodCategory,
           location,
           radius: radiusInMeters,
-          price: priceFilter,
+          price: priceString,
           limit: 20,
           sort_by: 'best_match'
         }
@@ -130,24 +130,25 @@ export const YelpService = {
       
       console.log(`Received ${response.data.businesses.length} results from Yelp`);
       
-      // Filter by rating threshold if needed (can also be done on frontend)
-      const filteredBusinesses = response.data.businesses.filter(
-        business => business.rating >= ratingThreshold
-      );
+      // No longer filtering by rating threshold since it's not in the SearchParams
+      const businesses = response.data.businesses;
       
-      console.log(`Filtered to ${filteredBusinesses.length} results after rating threshold`);
+      console.log(`Returning ${businesses.length} results`);
       
       // Map to our Restaurant type
-      return filteredBusinesses.map(mapYelpBusinessToRestaurant);
+      return businesses.map(mapYelpBusinessToRestaurant);
     } catch (error) {
+      // Handle errors with formatted messages
       const errorMessage = formatErrorMessage(error);
-      console.error('Error searching restaurants:', error);
-      console.error('Formatted error message:', errorMessage);
+      console.error(`Yelp API Error: ${errorMessage}`);
       
-      // For 403 errors related to CORS Anywhere
-      if (axios.isAxiosError(error) && error.response?.status === 403) {
-        console.error('You may need to request temporary access to the CORS Anywhere demo server:');
-        console.error('Visit https://cors-anywhere.herokuapp.com/corsdemo and click the button');
+      // For CORS or network issues, provide helpful guidance
+      if (axios.isAxiosError(error)) {
+        // For 403 errors related to CORS Anywhere
+        if (axios.isAxiosError(error) && error.response?.status === 403) {
+          console.error('You may need to request temporary access to the CORS Anywhere demo server:');
+          console.error('Visit https://cors-anywhere.herokuapp.com/corsdemo and click the button');
+        }
       }
       
       // For demo purposes, return mock data
