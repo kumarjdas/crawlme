@@ -379,31 +379,11 @@ const ViewCrawl: React.FC = () => {
           destination: startPoint, // End at the same place we started
           waypoints: waypoints,
           travelMode: googleTravelMode,
-          optimizeWaypoints: true
+          optimizeWaypoints: false
         },
         (result, status) => {
           if (status === google.maps.DirectionsStatus.OK) {
             setDirections(result);
-            
-            // If route was optimized, reorder venues to match optimized waypoint order
-            if (result?.routes[0]?.waypoint_order && result.routes[0].waypoint_order.length > 0) {
-              // Create a new array of venues in the optimized order
-              const optimizedVenues: Restaurant[] = [];
-              
-              // Add venues in optimized order
-              result.routes[0].waypoint_order.forEach(waypointIndex => {
-                optimizedVenues.push(crawlData.venues[waypointIndex]);
-              });
-              
-              // Update the crawl data with optimized venue order
-              setCrawlData(prev => {
-                if (!prev) return null;
-                return {
-                  ...prev,
-                  venues: optimizedVenues
-                };
-              });
-            }
             
             // Calculate total distance and duration and store leg info
             if (result?.routes[0]?.legs) {

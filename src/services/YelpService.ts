@@ -166,10 +166,13 @@ const getMockRestaurants = (params?: SearchParams): Restaurant[] => {
   // Use search parameters to customize mock data if available
   const locationName = params?.location || 'San Francisco, CA';
   const category = params?.foodCategory || 'Food';
+  const maxRadius = params?.radius || 10; // Use the search radius or default to 10 miles
   
-  // Generate random distances for the mock restaurants
+  // Generate random distances for the mock restaurants that respect the search radius
   const generateDistance = (min: number, max: number): number => {
-    return +(min + Math.random() * (max - min)).toFixed(1);
+    // Make sure max doesn't exceed the search radius
+    const adjustedMax = Math.min(max, maxRadius);
+    return +(min + Math.random() * (adjustedMax - min)).toFixed(1);
   };
   
   // Return more tailored mock data based on search parameters
@@ -216,7 +219,7 @@ const getMockRestaurants = (params?: SearchParams): Restaurant[] => {
       address: `101 Pine St, ${locationName}`,
       categories: [category, 'Fine Dining'],
       coordinates: { latitude: 37.7920, longitude: -122.4080 },
-      distance: generateDistance(1, 4)
+      distance: generateDistance(1, Math.min(4, maxRadius))
     },
     {
       id: '5',
@@ -227,7 +230,7 @@ const getMockRestaurants = (params?: SearchParams): Restaurant[] => {
       address: `202 Market St, ${locationName}`,
       categories: [category, 'Fast Casual'],
       coordinates: { latitude: 37.7890, longitude: -122.4150 },
-      distance: generateDistance(1.2, 5)
+      distance: generateDistance(1.2, Math.min(5, maxRadius))
     }
   ];
 }; 
