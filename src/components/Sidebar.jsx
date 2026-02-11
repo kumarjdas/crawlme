@@ -1,17 +1,30 @@
-import React from 'react';
-import { Utensils, MapPin, Navigation, Settings } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { Utensils, MapPin, Settings, X, Plus, GripVertical } from 'lucide-react';
+import { motion, Reorder } from 'framer-motion';
 
 export function Sidebar({
     searchParams,
     setSearchParams,
     onSearch,
     stops = [],
-    routeSummary
+    routeSummary,
+    onRemoveStop,
+    onReorderStops,
+    onAddStop
 }) {
+    const [addStopQuery, setAddStopQuery] = useState('');
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setSearchParams(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleAddStopSubmit = (e) => {
+        e.preventDefault();
+        if (addStopQuery.trim()) {
+            onAddStop(addStopQuery);
+            setAddStopQuery('');
+        }
     };
 
     return (
@@ -84,28 +97,62 @@ export function Sidebar({
                 </div>
             )}
 
+            {/* Add Stop Section */}
+            {stops.length > 0 && (
+                <div className="add-stop-section" style={{ padding: '0 20px 10px' }}>
+                    <form onSubmit={handleAddStopSubmit} style={{ display: 'flex', gap: '10px' }}>
+                        <input
+                            type="text"
+                            value={addStopQuery}
+                            onChange={(e) => setAddStopQuery(e.target.value)}
+                            placeholder="Add specific place..."
+                            style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #333', background: '#222', color: 'white' }}
+                        />
+                        <button type="submit" style={{ background: '#333', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
+                            <Plus size={18} />
+                        </button>
+                    </form>
+                </div>
+            )}
+
             <div className="stops-list">
-                {stops.map((stop, index) => (
-                    <motion.div
-                        key={stop.id || index}
-                        className="stop-item"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                    >
-                        <div className="stop-marker">{index + 1}</div>
-                        <div className="stop-info">
-                            <h4>{stop.displayName}</h4>
-                            <p>{stop.formattedAddress}</p>
-                            {stop.rating && (
-                                <div className="rating">
-                                    {'★'.repeat(Math.round(stop.rating))}
-                                    <span>({stop.userRatingCount})</span>
+                <Reorder.Group axis="y" values={stops} onReorder={onReorderStops} style={{ listStyle: 'none', padding: 0 }}>
+                    {stops.map((stop, index) => (
+                        <Reorder.Item
+                            key={stop.id || stop.place_id || index}
+                            value={stop}
+                            style={{ background: 'transparent', border: 'none' }}
+                        >
+                            <motion.div
+                                className="stop-item"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                layoutId={stop.id}
+                            >
+                                <div className="drag-handle" style={{ cursor: 'grab', marginRight: '10px', color: '#666' }}>
+                                    <GripVertical size={16} />
                                 </div>
-                            )}
-                        </div>
-                    </motion.div>
-                ))}
+                                <div className="stop-marker">{index + 1}</div>
+                                <div className="stop-info">
+                                    <h4>{stop.displayName || stop.name}</h4>
+                                    <p>{stop.formattedAddress || stop.vicinity}</p>
+                                    {stop.rating && (
+                                        <div className="rating">
+                                            {'★'.repeat(Math.round(stop.rating))}
+                                            <span>({stop.userRatingCount || stop.user_ratings_total})</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => onRemoveStop(index)}
+                                    style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', marginLeft: 'auto' }}
+                                >
+                                    <X size={16} />
+                                </button>
+                            </motion.div>
+                        </Reorder.Item>
+                    ))}
+                </Reorder.Group>
             </div>
         </div>
     );

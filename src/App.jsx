@@ -11,6 +11,7 @@ export default function App() {
     const [directions, setDirections] = useState(null);
     const [routeSummary, setRouteSummary] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
+    const [routeOptions, setRouteOptions] = useState({ optimize: true });
 
     // Get User Location on Mount
     useEffect(() => {
@@ -40,23 +41,42 @@ export default function App() {
         setPlaces([]);
         setDirections(null);
         setRouteSummary(null);
+        setRouteOptions({ optimize: true }); // Reset optimization on new search
 
         try {
             const { Place } = await window.google.maps.importLibrary("places");
+            await window.google.maps.importLibrary("geometry"); // For radius checking
 
             // New Places API (Text Search)
             const request = {
                 textQuery: searchParams.foodType,
                 fields: ['displayName', 'location', 'rating', 'userRatingCount', 'formattedAddress', 'id'],
                 locationBias: userLocation, // Bias towards user location
-                maxResultCount: 20, // Fetch enough to sort
+                maxResultCount: 20, // Fetch enough to sort and filter
             };
 
             const { places: results } = await Place.searchByText(request);
 
             if (results && results.length > 0) {
-                // Sort by rating and rating count (heuristic)
-                const sortedResults = results.sort((a, b) => {
+                // 1. Filter by Radius (Strict)
+                const radiusMeters = searchParams.radius * 1609.34;
+                const filteredResults = results.filter(place => {
+                    if (!place.location) return false;
+                    const distance = window.google.maps.geometry.spherical.computeDistanceBetween(
+                        new window.google.maps.LatLng(userLocation),
+                        place.location
+                    );
+                    return distance <= radiusMeters;
+                });
+
+                if (filteredResults.length === 0) {
+                    alert(`No places found within ${searchParams.radius} miles.`);
+                    setIsSearching(false);
+                    return;
+                }
+
+                // 2. Sort by heuristic
+                const sortedResults = filteredResults.sort((a, b) => {
                     const scoreA = (a.rating || 0) * (Math.log10(a.userRatingCount || 1));
                     const scoreB = (b.rating || 0) * (Math.log10(b.userRatingCount || 1));
                     return scoreB - scoreA;
@@ -64,7 +84,7 @@ export default function App() {
 
                 const topPlaces = sortedResults.slice(0, searchParams.stops);
                 setPlaces(topPlaces);
-                calculateRoute(topPlaces);
+                calculateRoute(topPlaces, true); // Initial search optimizes route
             } else {
                 alert("No places found.");
                 setIsSearching(false);
@@ -78,8 +98,12 @@ export default function App() {
 
     }, [mapInstance, userLocation, searchParams]);
 
-    const calculateRoute = (waypoints) => {
-        if (!window.google) return;
+    const calculateRoute = (waypoints, optimize = true) => {
+        if (!window.google || waypoints.length === 0) {
+            setDirections(null);
+            setRouteSummary(null);
+            return;
+        }
 
         const directionsService = new window.google.maps.DirectionsService();
 
@@ -94,7 +118,7 @@ export default function App() {
                 origin: userLocation,
                 destination: userLocation, // Round trip
                 waypoints: waypointsData,
-                optimizeWaypoints: true,
+                optimizeWaypoints: optimize, // Use flag
                 travelMode: window.google.maps.TravelMode.DRIVING,
             },
             (result, status) => {
@@ -112,10 +136,13 @@ export default function App() {
                         totalDuration += leg.duration.value;
                     });
 
-                    // Sort places based on optimized waypoint order
-                    const optimizedOrder = result.routes[0].waypoint_order;
-                    const sortedPlaces = optimizedOrder.map(index => waypoints[index]);
-                    setPlaces(sortedPlaces);
+                    // Update places order ONLY if optimized
+                    if (optimize) {
+                        const optimizedOrder = result.routes[0].waypoint_order;
+                        const sortedPlaces = optimizedOrder.map(index => waypoints[index]);
+                        setPlaces(sortedPlaces);
+                    }
+                    // If not optimized, we assume 'waypoints' (from state) is already in the desired order
 
                     setRouteSummary({
                         distance: (totalDistance / 1609.34).toFixed(1) + ' mi',
@@ -129,6 +156,60 @@ export default function App() {
         );
     };
 
+    // --- Stop Management Handlers ---
+
+    const handleRemoveStop = (indexToRemove) => {
+        const newPlaces = places.filter((_, index) => index !== indexToRemove);
+        setPlaces(newPlaces);
+        setRouteOptions({ optimize: false });
+        calculateRoute(newPlaces, false);
+    };
+
+    const handleReorderStops = (newPlaces) => {
+        setPlaces(newPlaces);
+        setRouteOptions({ optimize: false }); // User explicitly ordered, so disable auto-optimize
+        calculateRoute(newPlaces, false);
+    };
+
+    const handleAddStop = async (query) => {
+        if (!mapInstance) return;
+        setIsSearching(true);
+        try {
+            const { Place } = await window.google.maps.importLibrary("places");
+            const request = {
+                textQuery: query,
+                fields: ['displayName', 'location', 'rating', 'userRatingCount', 'formattedAddress', 'id'],
+                locationBias: userLocation,
+                maxResultCount: 1,
+            };
+            const { places: results } = await Place.searchByText(request);
+
+            if (results && results.length > 0) {
+                const newPlace = results[0];
+                // Check for duplicates
+                if (places.some(p => p.id === newPlace.id)) {
+                    alert("This place is already in your crawl!");
+                    setIsSearching(false);
+                    return;
+                }
+
+                const newPlaces = [...places, newPlace];
+                setPlaces(newPlaces);
+                setRouteOptions({ optimize: false }); // User added specific stop, don't shuffle everything
+                calculateRoute(newPlaces, false);
+            } else {
+                alert("Could not find place: " + query);
+                setIsSearching(false);
+            }
+
+        } catch (error) {
+            console.error("Add Stop Error:", error);
+            alert("Error adding stop.");
+            setIsSearching(false);
+        }
+    };
+
+
     return (
         <div className="app-container" style={{ display: 'flex', width: '100%', height: '100vh' }}>
             <Sidebar
@@ -137,6 +218,9 @@ export default function App() {
                 onSearch={handleSearch}
                 stops={places}
                 routeSummary={routeSummary}
+                onRemoveStop={handleRemoveStop}
+                onReorderStops={handleReorderStops}
+                onAddStop={handleAddStop}
             />
             <div className="map-container-wrapper" style={{ flex: 1 }}>
                 <MapContainer
