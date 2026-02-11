@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Utensils, MapPin, Settings, X, Plus, GripVertical } from 'lucide-react';
+import { Utensils, MapPin, Settings, X, Plus, GripVertical, Navigation } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 
 export function Sidebar({
@@ -10,9 +10,12 @@ export function Sidebar({
     routeSummary,
     onRemoveStop,
     onReorderStops,
-    onAddStop
+    onAddStop,
+    onSetStartLocation,
+    onNavigate
 }) {
     const [addStopQuery, setAddStopQuery] = useState('');
+    const [startLocationQuery, setStartLocationQuery] = useState('');
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -27,14 +30,34 @@ export function Sidebar({
         }
     };
 
+    const handleStartLocationBlur = () => {
+        if (startLocationQuery.trim()) {
+            onSetStartLocation(startLocationQuery);
+        }
+    };
+
     return (
         <div className="sidebar">
             <div className="header">
-                <h1>Crawlme 🍔</h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h1>Crawlme 🍔</h1>
+                </div>
                 <p>Plan your ultimate food crawl</p>
             </div>
 
             <div className="control-panel">
+                <div className="input-group">
+                    <label><MapPin size={18} /> Starting Location</label>
+                    <input
+                        type="text"
+                        value={startLocationQuery}
+                        onChange={(e) => setStartLocationQuery(e.target.value)}
+                        onBlur={handleStartLocationBlur}
+                        onKeyDown={(e) => e.key === 'Enter' && handleStartLocationBlur()}
+                        placeholder="Current Location (or type address)"
+                    />
+                </div>
+
                 <div className="input-group">
                     <label><Utensils size={18} /> Food Type</label>
                     <input
@@ -83,7 +106,19 @@ export function Sidebar({
 
             {routeSummary && (
                 <div className="route-summary">
-                    <h3>Route Summary</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h3>Route Summary</h3>
+                        <button
+                            onClick={onNavigate}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '5px',
+                                background: '#FF9900', border: 'none', borderRadius: '5px',
+                                padding: '5px 10px', color: 'white', cursor: 'pointer', fontSize: '12px'
+                            }}
+                        >
+                            <Navigation size={14} /> Navigate
+                        </button>
+                    </div>
                     <div className="summary-stats">
                         <div>
                             <strong>{routeSummary.distance}</strong>
