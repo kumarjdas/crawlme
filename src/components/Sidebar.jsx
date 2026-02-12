@@ -1,6 +1,51 @@
 import React, { useState } from 'react';
 import { Utensils, MapPin, Settings, X, Plus, GripVertical, Navigation } from 'lucide-react';
-import { motion, Reorder } from 'framer-motion';
+import { motion, Reorder, useDragControls } from 'framer-motion';
+
+const ReorderItem = ({ stop, index, onRemove }) => {
+    const dragControls = useDragControls();
+
+    return (
+        <Reorder.Item
+            value={stop}
+            dragListener={false}
+            dragControls={dragControls}
+            style={{ background: 'transparent', border: 'none' }}
+        >
+            <motion.div
+                className="stop-item"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                layoutId={stop.id}
+            >
+                <div
+                    className="drag-handle"
+                    style={{ cursor: 'grab', marginRight: '10px', color: '#666', touchAction: 'none' }}
+                    onPointerDown={(e) => dragControls.start(e)}
+                >
+                    <GripVertical size={16} />
+                </div>
+                <div className="stop-marker">{index + 1}</div>
+                <div className="stop-info">
+                    <h4>{stop.displayName || stop.name}</h4>
+                    <p>{stop.formattedAddress || stop.vicinity}</p>
+                    {stop.rating && (
+                        <div className="rating">
+                            {'★'.repeat(Math.round(stop.rating))}
+                            <span>({stop.userRatingCount || stop.user_ratings_total})</span>
+                        </div>
+                    )}
+                </div>
+                <button
+                    onClick={() => onRemove(index)}
+                    style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', marginLeft: 'auto' }}
+                >
+                    <X size={16} />
+                </button>
+            </motion.div>
+        </Reorder.Item>
+    );
+};
 
 export function Sidebar({
     searchParams,
@@ -153,39 +198,12 @@ export function Sidebar({
             <div className="stops-list">
                 <Reorder.Group axis="y" values={stops} onReorder={onReorderStops} style={{ listStyle: 'none', padding: 0 }}>
                     {stops.map((stop, index) => (
-                        <Reorder.Item
+                        <ReorderItem
                             key={stop.id || stop.place_id || index}
-                            value={stop}
-                            style={{ background: 'transparent', border: 'none' }}
-                        >
-                            <motion.div
-                                className="stop-item"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                layoutId={stop.id}
-                            >
-                                <div className="drag-handle" style={{ cursor: 'grab', marginRight: '10px', color: '#666' }}>
-                                    <GripVertical size={16} />
-                                </div>
-                                <div className="stop-marker">{index + 1}</div>
-                                <div className="stop-info">
-                                    <h4>{stop.displayName || stop.name}</h4>
-                                    <p>{stop.formattedAddress || stop.vicinity}</p>
-                                    {stop.rating && (
-                                        <div className="rating">
-                                            {'★'.repeat(Math.round(stop.rating))}
-                                            <span>({stop.userRatingCount || stop.user_ratings_total})</span>
-                                        </div>
-                                    )}
-                                </div>
-                                <button
-                                    onClick={() => onRemoveStop(index)}
-                                    style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', marginLeft: 'auto' }}
-                                >
-                                    <X size={16} />
-                                </button>
-                            </motion.div>
-                        </Reorder.Item>
+                            stop={stop}
+                            index={index}
+                            onRemove={onRemoveStop}
+                        />
                     ))}
                 </Reorder.Group>
             </div>
