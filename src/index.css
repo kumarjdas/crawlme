@@ -253,6 +253,7 @@ input[type="range"] {
         border-right: none;
         border-top: 1px solid var(--border);
         box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+        overflow-y: auto;
     }
 
     .map-container-wrapper {
