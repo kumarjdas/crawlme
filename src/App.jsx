@@ -33,7 +33,8 @@ export default function App() {
                 (error) => {
                     console.error("Error getting location:", error);
                     setIsLocating(false);
-                }
+                },
+                { maximumAge: 60000, timeout: 10000, enableHighAccuracy: true }
             );
         } else {
             setIsLocating(false);
