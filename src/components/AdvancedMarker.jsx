@@ -19,7 +19,7 @@ export const AdvancedMarker = ({ map, position, title, index }) => {
                 borderColor: "#CC7A00",
                 glyphColor: "white",
             });
-            content = pin.element;
+            content = pin;
         }
 
         const marker = new window.google.maps.marker.AdvancedMarkerElement({
