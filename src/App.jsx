@@ -40,9 +40,257 @@ export default function App() {
         }
     }, [userLocation]);
 
-    // ... (rest of effects)
+    // 2. Parse URL Params on Mount
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const startParam = params.get('start');
+        const qParam = params.get('q');
+        const rParam = params.get('r');
+        const stopsParam = params.get('stops');
 
-    // Layout
+        if (startParam) {
+            const [lat, lng] = startParam.split(',').map(Number);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                setUserLocation({ lat, lng });
+            }
+        }
+        if (qParam || rParam) {
+            setSearchParams(prev => ({
+                ...prev,
+                foodType: qParam || prev.foodType,
+                radius: rParam ? Number(rParam) : prev.radius,
+            }));
+        }
+
+    }, []);
+
+    const handleSearch = useCallback(async () => {
+        if (!mapInstance || !userLocation) {
+            alert("Map not ready or location not found. Please wait.");
+            return;
+        }
+
+        setIsSearching(true);
+        setPlaces([]);
+        setDirections(null);
+        setRouteSummary(null);
+        setRouteOptions({ optimize: true });
+
+        try {
+            const { Place } = await window.google.maps.importLibrary("places");
+            await window.google.maps.importLibrary("geometry");
+
+            const request = {
+                textQuery: searchParams.foodType,
+                fields: ['displayName', 'location', 'rating', 'userRatingCount', 'formattedAddress', 'id'],
+                locationBias: userLocation,
+                maxResultCount: 20,
+            };
+
+            const { places: results } = await Place.searchByText(request);
+
+            if (results && results.length > 0) {
+                const radiusMeters = searchParams.radius * 1609.34;
+                const filteredResults = results.filter(place => {
+                    if (!place.location) return false;
+                    const distance = window.google.maps.geometry.spherical.computeDistanceBetween(
+                        new window.google.maps.LatLng(userLocation),
+                        place.location
+                    );
+                    return distance <= radiusMeters;
+                });
+
+                if (filteredResults.length === 0) {
+                    alert(`No places found within ${searchParams.radius} miles.`);
+                    setIsSearching(false);
+                    return;
+                }
+
+                const sortedResults = filteredResults.sort((a, b) => {
+                    const scoreA = (a.rating || 0) * Math.pow(a.userRatingCount || 0, 0.4);
+                    const scoreB = (b.rating || 0) * Math.pow(b.userRatingCount || 0, 0.4);
+                    return scoreB - scoreA;
+                });
+
+                const topPlaces = sortedResults.slice(0, searchParams.stops);
+                setPlaces(topPlaces);
+                calculateRoute(topPlaces, true);
+            } else {
+                alert("No places found.");
+                setIsSearching(false);
+            }
+
+        } catch (error) {
+            console.error("Places Search Error:", error);
+            alert("Error finding places. Make sure Places API (New) is enabled.");
+            setIsSearching(false);
+        }
+
+    }, [mapInstance, userLocation, searchParams]);
+
+    const calculateRoute = (waypoints, optimize = true) => {
+        if (!window.google || waypoints.length === 0) {
+            setDirections(null);
+            setRouteSummary(null);
+            return;
+        }
+
+        const directionsService = new window.google.maps.DirectionsService();
+
+        const waypointsData = waypoints.map(place => ({
+            location: place.location,
+            stopover: true
+        }));
+
+        directionsService.route(
+            {
+                origin: userLocation,
+                destination: userLocation,
+                waypoints: waypointsData,
+                optimizeWaypoints: optimize,
+                travelMode: window.google.maps.TravelMode.DRIVING,
+            },
+            (result, status) => {
+                setIsSearching(false);
+                if (status === window.google.maps.DirectionsStatus.OK) {
+                    setDirections(result);
+
+                    const route = result.routes[0];
+                    let totalDistance = 0;
+                    let totalDuration = 0;
+
+                    route.legs.forEach(leg => {
+                        totalDistance += leg.distance.value;
+                        totalDuration += leg.duration.value;
+                    });
+
+                    if (optimize) {
+                        const optimizedOrder = result.routes[0].waypoint_order;
+                        const sortedPlaces = optimizedOrder.map(index => waypoints[index]);
+                        setPlaces(sortedPlaces);
+                    }
+
+                    setRouteSummary({
+                        distance: (totalDistance / 1609.34).toFixed(1) + ' mi',
+                        duration: Math.round(totalDuration / 60) + ' min'
+                    });
+                } else {
+                    console.error("Directions request failed due to " + status);
+                    alert("Could not calculate route.");
+                }
+            }
+        );
+    };
+
+    // --- Stop Management ---
+    const handleRemoveStop = (indexToRemove) => {
+        const newPlaces = places.filter((_, index) => index !== indexToRemove);
+        setPlaces(newPlaces);
+        setRouteOptions({ optimize: false });
+        calculateRoute(newPlaces, false);
+    };
+
+    const handleReorderStops = (newPlaces) => {
+        setPlaces(newPlaces);
+        setRouteOptions({ optimize: false });
+        calculateRoute(newPlaces, false);
+    };
+
+    const handleAddStop = async (query) => {
+        if (!mapInstance) return;
+        setIsSearching(true);
+        try {
+            const { Place } = await window.google.maps.importLibrary("places");
+            const request = {
+                textQuery: query,
+                fields: ['displayName', 'location', 'rating', 'userRatingCount', 'formattedAddress', 'id'],
+                locationBias: userLocation,
+                maxResultCount: 1,
+            };
+            const { places: results } = await Place.searchByText(request);
+
+            if (results && results.length > 0) {
+                const newPlace = results[0];
+                if (places.some(p => p.id === newPlace.id)) {
+                    alert("This place is already in your crawl!");
+                    setIsSearching(false);
+                    return;
+                }
+                const newPlaces = [...places, newPlace];
+                setPlaces(newPlaces);
+                setRouteOptions({ optimize: false });
+                calculateRoute(newPlaces, false);
+            } else {
+                alert("Could not find place: " + query);
+                setIsSearching(false);
+            }
+        } catch (error) {
+            console.error("Add Stop Error:", error);
+            alert("Error adding stop.");
+            setIsSearching(false);
+        }
+    };
+
+    // --- New Features ---
+    const handleSetStartLocation = async (query) => {
+        if (!query) {
+            // Reset to device location
+            if (userGeoLocation) {
+                setUserLocation(userGeoLocation);
+            }
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            const { Place } = await window.google.maps.importLibrary("places");
+            const request = {
+                textQuery: query,
+                fields: ['location', 'displayName'],
+                maxResultCount: 1
+            };
+            const { places: results } = await Place.searchByText(request);
+            if (results && results.length > 0) {
+                const loc = results[0].location;
+                // Convert to simple lat/lng object
+                const newLoc = { lat: loc.lat(), lng: loc.lng() };
+                setUserLocation(newLoc);
+                setIsSearching(false);
+            } else {
+                alert("Location not found.");
+                setIsSearching(false);
+            }
+        } catch (error) {
+            alert("Error finding location.");
+            setIsSearching(false);
+        }
+    };
+
+    const handleShareCrawl = () => {
+        if (!userLocation) return;
+        const params = new URLSearchParams();
+        params.set('start', `${userLocation.lat},${userLocation.lng}`);
+        params.set('q', searchParams.foodType);
+        params.set('r', searchParams.radius);
+
+        const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+        navigator.clipboard.writeText(url).then(() => {
+            alert("Link copied to clipboard!");
+        });
+    };
+
+    const handleNavigate = () => {
+        if (!userLocation || places.length === 0) return;
+
+        const origin = `${userLocation.lat},${userLocation.lng}`;
+        const waypoints = places.map(p => encodeURIComponent(p.formattedAddress)).join('|');
+        const destination = origin;
+
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=driving`;
+        window.open(url, '_blank');
+    };
+
+
     return (
         <div className="app-container">
             <Sidebar
