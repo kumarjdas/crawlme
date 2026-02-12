@@ -262,4 +262,11 @@ input[type="range"] {
         height: 45%;
         /* Slightly less space for map */
     }
+
+    .stops-list {
+        flex: 0 0 auto;
+        /* Allow list to take full height */
+        overflow-y: visible;
+        /* disable internal scroll */
+    }
 }
