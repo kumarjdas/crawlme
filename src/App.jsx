@@ -298,7 +298,7 @@ export default function App() {
 
 
     return (
-        <div className="app-container" style={{ display: 'flex', width: '100%', height: '100vh' }}>
+        <div className="app-container">
             <Sidebar
                 searchParams={searchParams}
                 setSearchParams={setSearchParams}
@@ -312,7 +312,7 @@ export default function App() {
                 onShare={handleShareCrawl}
                 onNavigate={handleNavigate}
             />
-            <div className="map-container-wrapper" style={{ flex: 1 }}>
+            <div className="map-container-wrapper">
                 <MapContainer
                     apiKey={GOOGLE_MAPS_API_KEY}
                     center={userLocation}
