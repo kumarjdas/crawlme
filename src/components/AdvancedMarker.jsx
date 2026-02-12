@@ -14,7 +14,7 @@ export const AdvancedMarker = ({ map, position, title, index }) => {
         let content = null;
         if (index !== undefined) {
             const pin = new window.google.maps.marker.PinElement({
-                glyph: `${index + 1}`,
+                glyphText: `${index + 1}`,
                 background: "#FF9900",
                 borderColor: "#CC7A00",
                 glyphColor: "white",

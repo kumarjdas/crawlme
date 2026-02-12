@@ -107,8 +107,8 @@ export default function App() {
                 }
 
                 const sortedResults = filteredResults.sort((a, b) => {
-                    const scoreA = (a.rating || 0) * (Math.log10(a.userRatingCount || 1));
-                    const scoreB = (b.rating || 0) * (Math.log10(b.userRatingCount || 1));
+                    const scoreA = (a.rating || 0) * Math.pow(a.userRatingCount || 0, 0.4);
+                    const scoreB = (b.rating || 0) * Math.pow(b.userRatingCount || 0, 0.4);
                     return scoreB - scoreA;
                 });
 
