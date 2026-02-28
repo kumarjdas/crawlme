@@ -291,6 +291,28 @@ export default function App() {
         window.open(url, '_blank');
     };
 
+    const handleExportCSV = () => {
+        if (places.length === 0) return;
+
+        let csvContent = "stop number,location name,address\n";
+
+        places.forEach((place, index) => {
+            const stopNumber = index + 1;
+            const name = `"${(place.displayName || place.name || "").replace(/"/g, '""')}"`;
+            const address = `"${(place.formattedAddress || place.vicinity || "").replace(/"/g, '""')}"`;
+            csvContent += `${stopNumber},${name},${address}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "crawl_route.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
 
     return (
         <div className="app-container">
@@ -306,6 +328,7 @@ export default function App() {
                 onSetStartLocation={handleSetStartLocation}
                 onShare={handleShareCrawl}
                 onNavigate={handleNavigate}
+                onExportCSV={handleExportCSV}
             />
             <div className="map-container-wrapper">
                 {isLocating && !userLocation ? (

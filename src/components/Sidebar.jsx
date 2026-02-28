@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Utensils, MapPin, Settings, X, Plus, GripVertical, Navigation } from 'lucide-react';
+import { Utensils, MapPin, Settings, X, Plus, GripVertical, Navigation, Download } from 'lucide-react';
 import { motion, Reorder, useDragControls } from 'framer-motion';
 
 const ReorderItem = ({ stop, index, onRemove }) => {
@@ -57,7 +57,8 @@ export function Sidebar({
     onReorderStops,
     onAddStop,
     onSetStartLocation,
-    onNavigate
+    onNavigate,
+    onExportCSV
 }) {
     const [addStopQuery, setAddStopQuery] = useState('');
     const [startLocationQuery, setStartLocationQuery] = useState('');
@@ -151,18 +152,32 @@ export function Sidebar({
 
             {routeSummary && (
                 <div className="route-summary">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                        <h3>Route Summary</h3>
-                        <button
-                            onClick={onNavigate}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '5px',
-                                background: '#FF9900', border: 'none', borderRadius: '5px',
-                                padding: '5px 10px', color: 'white', cursor: 'pointer', fontSize: '12px'
-                            }}
-                        >
-                            <Navigation size={14} /> Navigate
-                        </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                        <h3 style={{ margin: 0 }}>Route Summary</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                            <button
+                                onClick={onNavigate}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '5px',
+                                    background: '#FF9900', border: 'none', borderRadius: '5px',
+                                    padding: '5px 10px', color: 'white', cursor: 'pointer', fontSize: '12px',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <Navigation size={14} /> Navigate
+                            </button>
+                            <button
+                                onClick={onExportCSV}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '5px',
+                                    background: '#4CAF50', border: 'none', borderRadius: '5px',
+                                    padding: '5px 10px', color: 'white', cursor: 'pointer', fontSize: '12px',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <Download size={14} /> Export CSV
+                            </button>
+                        </div>
                     </div>
                     <div className="summary-stats">
                         <div>
